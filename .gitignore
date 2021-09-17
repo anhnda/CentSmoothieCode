@@ -1,0 +1,10 @@
+*.pyc
+.idea
+__pycache__/*
+saveModel/*
+logs/*
+rg_*
+gen.sh
+data/*
+figs/*
+out/*

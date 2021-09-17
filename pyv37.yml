@@ -1,0 +1,9 @@
+name: pyv37
+
+dependencies:
+  - python=3.7
+  - pysmiles
+  - numpy
+  - scikit-learn
+  - matplotlib
+
