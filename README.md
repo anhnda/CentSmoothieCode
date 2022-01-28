@@ -4,7 +4,7 @@
 
 Create a python environment using anaconda
 ```shell
-    conda create env -f pyv37.yml
+    conda env create -f pyv37.yml
     conda activate pyv37
     pip install pyaml
 ```
