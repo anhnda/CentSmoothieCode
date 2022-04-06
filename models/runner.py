@@ -2,7 +2,7 @@ from utils import utils
 
 from utils.logger.logger2 import MyLogger
 from models.trainWeightCentL import WrapperWeightCentSmooth
-from dataFactory.datawrapper import Wrapper
+from dataFactory.dataLoader import DataLoader
 import params
 
 import numpy as np
@@ -48,8 +48,8 @@ class Runner:
         for iFold in ss:
             resetRandomSeed()
             self.logger.infoAll(("Fold: ", iFold))
-            wrapper = Wrapper()
-            wrapper.loadData(iFold)
+            wrapper = DataLoader()
+            wrapper.loadData(iFold, dataPref=params.D_PREF)
             self.logger.infoAll(("NDRUG, NSE: ", wrapper.data.nD, wrapper.data.nSe))
 
             auc, aupr, vv = self.wrapper.train(wrapper, iFold, method)

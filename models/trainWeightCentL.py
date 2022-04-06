@@ -207,7 +207,7 @@ class WrapperWeightCentSmooth:
         fout.close()
     def train(self, dataWrapper, iFold, method="New", printDB=params.PRINT_DB):
         realData = dataWrapper.data
-        target = dataWrapper.x
+        target = dataWrapper.ddiTensorInDevice
         model = WHGNN(realData.featureSize, params.EMBEDDING_SIZE, realData.nSe, realData.nD, device=self.device)
         self.model = model.to(self.device)
 
@@ -274,10 +274,11 @@ class WrapperWeightCentSmooth:
             exit(-1)
             return 0, 0, 0
 
-        A = realData.AFold
-        D = realData.DFold
-        print(A.shape, A[0, :10])
-        print(D.shape, D[:10])
+        # A = realData.AFold
+        # D = realData.DFold
+
+        # print(A.shape, A[0, :10])
+        # print(D.shape, D[:10])
 
         dd = self.convertAllDict2LongList(realData.trainPairStats, model.nV)
 

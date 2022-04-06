@@ -5,6 +5,6 @@ saveModel/*
 logs/*
 rg_*
 gen.sh
-data/*
 figs/*
 out/*
+tmpOut/*

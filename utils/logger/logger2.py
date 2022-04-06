@@ -14,7 +14,7 @@ class MyLogger():
     def __init__(self,logPath = None):
 
         with open(params.LOG_CONF) as f:
-            D = yaml.load(f)
+            D = yaml.load(f, Loader=yaml.FullLoader)
             #print D
             D.setdefault('version', 1)
         if logPath != None:
