@@ -38,7 +38,7 @@ FORCE_CPU = False
 K_FOLD = 20
 
 N_ITER = 3000
-ITER_DB = 10
+ITER_DB = 100
 
 
 

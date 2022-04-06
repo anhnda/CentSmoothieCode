@@ -30,7 +30,7 @@ class HEGNN(torch.nn.Module):
         self.seBiLSTM = LSTM(input_size=embeddingSize, hidden_size=embeddingSize, proj_size=self.halfEmbeddingSize,
                              batch_first=True,
                              bidirectional=True).to(self.device)
-        w = torch.rand(2 * self.embeddingSize)
+        w = torch.zeros(2 * self.embeddingSize).uniform_(0.001, 0.1)
         self.w = Parameter(w, requires_grad=True).to(self.device)
         self.dim1s = [i for i in range(self.nD)]
         self.dim2s = [i for i in range(self.nD)]
@@ -102,19 +102,39 @@ class HEGNN(torch.nn.Module):
         ss = 0
         wxvs = []
         for v in lstms:
+            # assert not v.isnan().any()
+            # assert not v.isinf().any()
+            # assert not x.isnan().any()
+            # assert not x.isinf().any()
             wxv = torch.exp(torch.matmul(torch.cat([x, v], dim=1), self.w))
+            # assert not wxv.isnan().any()
+            # assert not wxv.isinf().any()
+
             ss += wxv
             wxvs.append(wxv)
+
+        # assert not ss.isnan().any()
+        # assert not ss.isinf().any()
+
         ws2 = []
         for wxv in wxvs:
-            ws2.append(wxv / (ss + 1e-10))
+            vv = wxv / (ss + 1e-10)
+            # print(1, wxv.shape, ss.shape)
+            # print(2, torch.max(ss),  torch.min(ss), torch.max(wxv))
+            # print(3, torch.max(vv), torch.min(vv))
+            # assert not wxv.isnan().any()
+            # assert not ss.isnan().any()
+            # assert not vv.isnan().any()
+
+            ws2.append(vv)
         finalX = 0
         for i in range(3):
             fx = lstms[i]
             w = ws2[i]
+            # assert not w.isnan().any()
             # print("SS" , fx.shape, w.shape)
             finalX += torch.mul(w.unsqueeze(-1), fx)
-
+        assert not finalX.isnan().any()
         # print(finalX.shape)
         self.finalX = finalX
 
