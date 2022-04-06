@@ -14,7 +14,7 @@ class DataLoader:
         if forceCPU:
             self.device = torch.device('cpu')
         else:
-            self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
         pass
 
     def loadData(self, iFold, dataPref=""):
@@ -86,10 +86,7 @@ class DataLoader:
         self.validPosIndices = validPosIndices
         self.testPosIndices = testPosIndices
         self.data = data
-
-        # if not params.FAST_TRAINING:
-        #    self.hyperEdgeIndex = data.hyperEdgeCliqueIndex.to(self.device)
-        #    self.hyperEdgeTypes = torch.from_numpy(data.hyperEdgeIndexType).long().to(self.device)
+        self.heterogeneousAdjacency = data.heterogeneousAdjacency
 
 
 class RealData:

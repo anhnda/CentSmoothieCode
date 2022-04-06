@@ -1,4 +1,4 @@
-from models.weightCentSmooth import WHGNN
+from models.centsmoothie import CentSmoothie
 
 import torch
 import numpy as np
@@ -24,7 +24,7 @@ class WrapperWeightCentSmooth:
 
     def setLogger(self, logger):
         self.logger = logger
-        self.logger.infoAll(inspect.getsource(WHGNN))
+        self.logger.infoAll(inspect.getsource(CentSmoothie))
 
     def getLoss(self, out1, out2, reg=None):
         # print(torch.min(out1), torch.max(out1), torch.min(out2), torch.max(out2))
@@ -208,7 +208,7 @@ class WrapperWeightCentSmooth:
     def train(self, dataWrapper, iFold, method="New", printDB=params.PRINT_DB):
         realData = dataWrapper.data
         target = dataWrapper.ddiTensorInDevice
-        model = WHGNN(realData.featureSize, params.EMBEDDING_SIZE, realData.nSe, realData.nD, device=self.device)
+        model = CentSmoothie(realData.featureSize, params.EMBEDDING_SIZE, realData.nSe, realData.nD, device=self.device)
         self.model = model.to(self.device)
 
         if params.OPTIMIZER == "Adam":

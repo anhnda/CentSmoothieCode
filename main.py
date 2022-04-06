@@ -35,10 +35,10 @@ def checkDir():
     utils.ensure_dir(params.LOG_DIR)
 
 
-def runMode():
+def runMode(opts):
     from models.runner import Runner
     print("Run model...")
-    runner = Runner()
+    runner = Runner(model=opts.model)
     runner.run()
 
 
@@ -51,6 +51,8 @@ if __name__ == "__main__":
 
     parser.add_option("-c", "--oncpu", dest="oncpu", action="store_true")
     parser.add_option("-r", "--run", dest="run", action="store_true")
+    parser.add_option("-m", "--model", dest="model", type='str', default="hegnn")
+
     parser.add_option("-v", "--visual", dest="visual", action="store_true")
     parser.add_option("-i", "--iter", dest="iter", type='int', default=params.N_ITER)
     parser.add_option("-y", "--layer", dest="layer", type='int', default=params.N_LAYER)
@@ -75,4 +77,4 @@ if __name__ == "__main__":
 
         exit(-1)
     if options.run:
-        runMode()
+        runMode(options)

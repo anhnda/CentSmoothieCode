@@ -8,3 +8,5 @@ gen.sh
 figs/*
 out/*
 tmpOut/*
+pw
+db.py

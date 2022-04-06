@@ -6,9 +6,9 @@ import params
 from torch_scatter.scatter import scatter_add
 
 
-class WHGNN(torch.nn.Module):
+class CentSmoothie(torch.nn.Module):
     def __init__(self, featureSize, embeddingSize, nSe, nD, nLayer=params.N_LAYER, device=torch.device('cpu')):
-        super(WHGNN, self).__init__()
+        super(CentSmoothie, self).__init__()
         self.nSe = nSe
         self.nD = nD
         self.nV = nSe + nD

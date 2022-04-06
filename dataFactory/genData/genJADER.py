@@ -7,8 +7,7 @@ from dataFactory.moleculeFactory import  MoleculeFactory
 import itertools
 from multiprocessing import Process, Value, Queue
 from dataFactory.dataLoader import RealData, RealFoldData
-
-import time
+from dataFactory.genData.func import *
 import numpy as np
 import torch
 
@@ -22,107 +21,6 @@ DATASET_DIR = "%s/JADERDDI" % params.TMP_DIR
 utils.ensure_dir(DATASET_DIR)
 D_PREF = "J"
 DUM_FILE = "%s/Dump_%s.pkl" % (DATASET_DIR, D_PREF)
-
-def print_db(*msg):
-    if params.PRINT_DB:
-        print(*msg)
-
-
-
-def loadPubChem():
-    return utils.load_obj(params.PUBCHEM_FILE)
-
-def loadMonoADR():
-    fin = open(params.MONO_ADR_FILE)
-    dDrug2ADRSet = dict()
-    while True:
-        line = fin.readline()
-        if line == "":
-            break
-        line = line.strip()
-        parts = line.split("|")
-        inchi = parts[1]
-        adrs = parts[2]
-        adrSet = set()
-        for adr in adrs:
-            adrSet.add(adr)
-        dDrug2ADRSet[inchi] = adrSet
-    fin.close()
-    return dDrug2ADRSet
-
-
-def loadDrug2Protein(inchies):
-    dInchi2Id = dict()
-    for inchi in inchies:
-        utils.get_update_dict_index(dInchi2Id, inchi)
-    nDrug = len(dInchi2Id)
-    drug2ProteinList = dataFactory.dataLoader.loadDrugProteinMap()
-    print_db(drug2ProteinList['ILVYCEVXHALBSC-OTBYEXOQSA-N'])
-    # exit(-1)
-    proteinListList = sorted(list(drug2ProteinList.values()))
-    protensSets = set()
-    protein2Id = dict()
-    for proteins in proteinListList:
-        for protein in proteins:
-            if protein != "":
-                protensSets.add(protein)
-
-    proteinList = list(protensSets)
-    proteinList = sorted(proteinList)
-    for protein in proteinList:
-        utils.get_update_dict_index(protein2Id, protein)
-
-    dDrug2ProteinFeatures = dict()
-    nP = len(protein2Id)
-    edge_index = []
-    cc = 0
-    for drugInchi, proteins in drug2ProteinList.items():
-        drugId = utils.get_dict(dInchi2Id, drugInchi, -1)
-        # print_db(len(proteins))
-        if drugId == -1:
-            # print_db("Skip ",drugInchi)
-            cc += 1
-            continue
-        proteinFeature = np.zeros(nP)
-        for p in proteins:
-            piD0 = protein2Id[p]
-            proteinFeature[piD0] = 1
-            pId = piD0 + nDrug
-            edge_index.append([drugId, pId])
-            edge_index.append([pId, drugId])
-        dDrug2ProteinFeatures[drugInchi] = proteinFeature
-    # exit(-1)
-    return edge_index, protein2Id, nDrug, dDrug2ProteinFeatures
-
-
-def appendProteinProtein(protein2Id, edg_index, nDrug):
-    fin = open(params.PPI_FILE)
-    while True:
-        line = fin.readline()
-        if line == "":
-            break
-        parts = line.strip().split("\t")
-        p1 = utils.get_dict(protein2Id, parts[0], -1)
-        p2 = utils.get_dict(protein2Id, parts[1], -1)
-        if p1 != -1 and p2 != -1:
-            edg_index.append([p1 + nDrug, p2 + nDrug])
-            edg_index.append([p2 + nDrug, p1 + nDrug])
-
-    fin.close()
-    return edg_index
-
-
-def loadInchi2SMILE():
-    f = open(params.DRUGBANK_ATC_INCHI)
-    inchi2SMILE = dict()
-    while True:
-        line = f.readline()
-        if line == "":
-            break
-        parts = line.strip().split("\t")
-        inchi2SMILE[parts[-1]] = parts[4]
-    f.close()
-    return inchi2SMILE
 
 def createSubSet():
     inchi2FingerPrint = loadPubChem()
@@ -231,48 +129,6 @@ def stats():
 def filter():
     pass
 
-
-def swap(d1, d2):
-    if d1 > d2:
-        d1, d2 = d2, d1
-    return d1, d2
-
-
-def genTrueNegTpl(adrId2Pairid, nDrug, nNegPerADR, kSpace=params.KSPACE):
-    negTpls = []
-
-    allPairs = set()
-    for pairs in adrId2Pairid.values():
-        for pair in pairs:
-            allPairs.add(pair)
-
-    for adrId, pairs in adrId2Pairid.items():
-        adrId = adrId + nDrug
-        ni = 0
-        # nx = nNegPerADR * np.log(10) / np.log(len(pairs))
-
-        if kSpace:
-            for pair in allPairs:
-                d1, d2 = pair
-
-                d1, d2 = swap(d1, d2)
-                p = (d1, d2)
-                if p not in pairs:
-                    negTpls.append((d1, d2, adrId))
-            continue
-
-        nx = nNegPerADR * np.log(10) / np.log(len(pairs))
-
-        while ni < nx:
-            d1, d2 = np.random.randint(0, nDrug, 2)
-            d1, d2 = swap(d1, d2)
-            pair = (d1, d2)
-            if pair not in pairs:
-                ni += 1
-                negTpls.append((d1, d2, adrId))
-    return negTpls
-
-
 def producer(data):
     dADRId2PairIds, numDrug, numNodes, iFold, numSe, negFold, features, smiles, edgeIndex, nProtein, orderedADRIds = data
     testFold = []
@@ -353,22 +209,25 @@ def producer(data):
             else:
                 tp = 4
         return tp
-    hyperEdgeCliqueIndex = []
-    hyperedgeIndexType = []
-    for tpl in trainFold:
-        for pair in list(itertools.product(tpl, tpl)):
-            id1, id2 = pair
-            if id1 != id2:
-                tp = getPairTypeById(id1, id2, numDrug)
-                hyperEdgeCliqueIndex.append([id1, id2])
-                hyperedgeIndexType.append(tp)
+    # hyperEdgeCliqueIndex = []
+    # hyperedgeIndexType = []
+    # for tpl in trainFold:
+    #     for pair in list(itertools.product(tpl, tpl)):
+    #         id1, id2 = pair
+    #         if id1 != id2:
+    #             tp = getPairTypeById(id1, id2, numDrug)
+    #             hyperEdgeCliqueIndex.append([id1, id2])
+    #             hyperedgeIndexType.append(tp)
+    #
+    # # Adding self-loop
+    # for idx in range(numDrug + numSe):
+    #     id1 = idx
+    #     tp = getPairTypeById(id1, id1, numDrug)
+    #     hyperEdgeCliqueIndex.append([id1, id1])
+    #     hyperedgeIndexType.append(tp)
 
-    # Adding self-loop
-    for idx in range(numDrug + numSe):
-        id1 = idx
-        tp = getPairTypeById(id1, id1, numDrug)
-        hyperEdgeCliqueIndex.append([id1, id1])
-        hyperedgeIndexType.append(tp)
+    heterogeneousAdjacency = genAdjacency(trainFold, numDrug + numSe)
+
     realFold = RealFoldData(trainFold, testFold, validFold, 0, 0, negFold, features)
     realFold.nSe = numSe
     realFold.nD = numDrug
@@ -388,8 +247,9 @@ def producer(data):
     realFold.nPro = nProtein
     realFold.orderADRIds = orderedADRIds
 
-    realFold.hyperEdgeCliqueIndex = torch.tensor(np.asarray(hyperEdgeCliqueIndex), dtype=torch.long).t().contiguous()
-    realFold.hyperEdgeIndexType = np.asarray(hyperedgeIndexType, dtype=int)
+    # realFold.hyperEdgeCliqueIndex = torch.tensor(np.asarray(hyperEdgeCliqueIndex), dtype=torch.long).t().contiguous()
+    # realFold.hyperEdgeIndexType = np.asarray(hyperedgeIndexType, dtype=int)
+    realFold.heterogeneousAdjacency = heterogeneousAdjacency
     return realFold
 
 
@@ -403,14 +263,6 @@ def genBatchAtomGraph(smiles):
     graphBatch = moleculeFactory.createBatchGraph(atomOffset=0)
     return graphBatch
 
-
-def genSMILESFromInchies(inchies):
-    inchi2SMILE = loadInchi2SMILE()
-    allSMILEs = []
-    for inchi in inchies:
-        smile = inchi2SMILE[inchi]
-        allSMILEs.append(smile)
-    return allSMILEs
 
 
 def genHyperData():
@@ -498,41 +350,6 @@ def genHyperData():
         utils.save_obj(realFold, "%s/%s_%d_%d_%d_%d" % (
             DATASET_DIR, D_PREF, params.MAX_R_ADR, params.MAX_R_DRUG, params.ADR_OFFSET, iFold))
 
-
-def trainFold2PairStats(trainFold, nOffDrug):
-    dii = dict()
-    dij = dict()
-    dit = dict()
-    dtt = dict()
-    for tpl in trainFold:
-        i, j, t = tpl
-        to = t - nOffDrug
-        i, j = swap(i, j)
-
-        vdii = utils.get_insert_key_dict(dii, (i, i), [])
-        vdii.append(to)
-        vdjj = utils.get_insert_key_dict(dii, (j, j), [])
-        vdjj.append(to)
-
-        vdji = utils.get_insert_key_dict(dij, (i, j), [])
-        vdji.append(to)
-
-        vdtt = utils.get_insert_key_dict(dtt, (t, t), [])
-        vdtt.append(to)
-
-        vdit = utils.get_insert_key_dict(dit, (i, t), [])
-        vdit.append(to)
-        vdjt = utils.get_insert_key_dict(dit, (j, t), [])
-        vdjt.append(to)
-
-    def dict2Array(d):
-        d2 = dict()
-        for k, v in d.items():
-            v = np.asarray(v, dtype=int)
-            d2[k] = v
-        return d2
-
-    return dict2Array(dii), dict2Array(dij), dict2Array(dit), dict2Array(dtt)
 
 
 def exportData():

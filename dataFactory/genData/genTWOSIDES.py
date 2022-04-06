@@ -1,6 +1,5 @@
 import params
-from dataFactory.genData.func import resetRandomSeed, loadPubChem, loadMonoADR, loadDrug2Protein, appendProteinProtein, \
-    swap, genSMILESFromInchies
+from dataFactory.genData.func import *
 from utils import utils
 import random
 import copy
@@ -10,16 +9,10 @@ import itertools
 import numpy as np
 import torch
 
-DATASET_DIR = params.DDI_DIR
 params.SAMPLE_NEG = 1300  # Proportion to the number of positive samples for each drug pair of the dataset
 DATASET_DIR = "%s/TWOSIDES" % params.TMP_DIR
 utils.ensure_dir(DATASET_DIR)
 DUMP_FILE = "%s/dump.pkl" % DATASET_DIR
-
-
-def print_db(*msg):
-    if params.PRINT_DB:
-        print(*msg)
 
 
 def createSubSet(inp_path=params.PATH_TWOSIDES_A):
@@ -114,40 +107,6 @@ def createSubSet(inp_path=params.PATH_TWOSIDES_A):
     v = (params.MAX_R_ADR, params.MAX_R_DRUG, dADR2Pair, orderedADR, inchi2FingerPrint)
     utils.save_obj(v, DUMP_FILE)
     return v
-
-
-def genTrueNegTpl(adrId2Pairid, nDrug, nNegPerADR, kSpace=params.KSPACE):
-    negTpls = []
-
-    allPairs = set()
-    for pairs in adrId2Pairid.values():
-        for pair in pairs:
-            allPairs.add(pair)
-
-    for adrId, pairs in adrId2Pairid.items():
-        adrId = adrId + nDrug
-        ni = 0
-
-        if kSpace:
-            for pair in allPairs:
-                d1, d2 = pair
-
-                d1, d2 = swap(d1, d2)
-                p = (d1, d2)
-                if p not in pairs:
-                    negTpls.append((d1, d2, adrId))
-            continue
-
-        nx = nNegPerADR * np.log(10) / (np.log(len(pairs) + 3))
-
-        while ni < nx:
-            d1, d2 = np.random.randint(0, nDrug, 2)
-            d1, d2 = swap(d1, d2)
-            pair = (d1, d2)
-            if pair not in pairs:
-                ni += 1
-                negTpls.append((d1, d2, adrId))
-    return negTpls
 
 
 def getPairTypeById(id1, id2, anchor):
@@ -255,22 +214,24 @@ def producer(data):
                 tp = 4
         return tp
 
-    hyperEdgeCliqueIndex = []
-    hyperedgeIndexType = []
-    for tpl in trainFold:
-        for pair in list(itertools.product(tpl, tpl)):
-            id1, id2 = pair
-            if id1 != id2:
-                tp = getPairTypeById(id1, id2, numDrug)
-                hyperEdgeCliqueIndex.append([id1, id2])
-                hyperedgeIndexType.append(tp)
+    # hyperEdgeCliqueIndex = []
+    # hyperedgeIndexType = []
+    # for tpl in trainFold:
+    #     for pair in list(itertools.product(tpl, tpl)):
+    #         id1, id2 = pair
+    #         if id1 != id2:
+    #             tp = getPairTypeById(id1, id2, numDrug)
+    #             hyperEdgeCliqueIndex.append([id1, id2])
+    #             hyperedgeIndexType.append(tp)
 
     # Adding self-loop
-    for idx in range(numDrug + numSe):
-        id1 = idx
-        tp = getPairTypeById(id1, id1, numDrug)
-        hyperEdgeCliqueIndex.append([id1, id1])
-        hyperedgeIndexType.append(tp)
+    # for idx in range(numDrug + numSe):
+    #     id1 = idx
+    #     tp = getPairTypeById(id1, id1, numDrug)
+    #     hyperEdgeCliqueIndex.append([id1, id1])
+    #     hyperedgeIndexType.append(tp)
+
+    heterogeneousAdjacency = genAdjacency(trainFold, numDrug + numSe)
 
     realFold = RealFoldData(trainFold, testFold, validFold, 0, 0, negFold, features)
     realFold.nSe = numSe
@@ -290,9 +251,9 @@ def producer(data):
     realFold.ppGraph = edgeIndex
     realFold.nPro = nProtein
     realFold.orderADRIds = orderedADRIds
-    realFold.hyperEdgeCliqueIndex = torch.tensor(np.asarray(hyperEdgeCliqueIndex), dtype=torch.long).t().contiguous()
-    realFold.hyperEdgeIndexType = np.asarray(hyperedgeIndexType, dtype=int)
-
+    # realFold.hyperEdgeCliqueIndex = torch.tensor(np.asarray(hyperEdgeCliqueIndex), dtype=torch.long).t().contiguous()
+    # realFold.hyperEdgeIndexType = np.asarray(hyperedgeIndexType, dtype=int)
+    realFold.heterogeneousAdjacency = heterogeneousAdjacency
     return realFold
 
 
@@ -388,42 +349,6 @@ def genHyperData(onlyFirst=False):
             DATASET_DIR, pref, params.MAX_R_ADR, params.MAX_R_DRUG, params.ADR_OFFSET, iFold))
         if onlyFirst:
             break
-
-
-def trainFold2PairStats(trainFold, nOffDrug):
-    dii = dict()
-    dij = dict()
-    dit = dict()
-    dtt = dict()
-    for tpl in trainFold:
-        i, j, t = tpl
-        to = t - nOffDrug
-        i, j = swap(i, j)
-
-        vdii = utils.get_insert_key_dict(dii, (i, i), [])
-        vdii.append(to)
-        vdjj = utils.get_insert_key_dict(dii, (j, j), [])
-        vdjj.append(to)
-
-        vdji = utils.get_insert_key_dict(dij, (i, j), [])
-        vdji.append(to)
-
-        vdtt = utils.get_insert_key_dict(dtt, (t, t), [])
-        vdtt.append(to)
-
-        vdit = utils.get_insert_key_dict(dit, (i, t), [])
-        vdit.append(to)
-        vdjt = utils.get_insert_key_dict(dit, (j, t), [])
-        vdjt.append(to)
-
-    def dict2Array(d):
-        d2 = dict()
-        for k, v in d.items():
-            v = np.asarray(v, dtype=int)
-            d2[k] = v
-        return d2
-
-    return dict2Array(dii), dict2Array(dij), dict2Array(dit), dict2Array(dtt)
 
 
 def saveId2Name(inp=params.PATH_TWOSIDES_C5):

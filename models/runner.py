@@ -1,7 +1,8 @@
 from utils import utils
 
 from utils.logger.logger2 import MyLogger
-from models.trainWeightCentL import WrapperWeightCentSmooth
+from models.trainCentSmoothie import WrapperWeightCentSmooth
+from models.hegnn.trainHEGNN import WrapperHEGNN
 from dataFactory.dataLoader import DataLoader
 import params
 
@@ -11,14 +12,17 @@ import torch
 
 
 class Runner:
-    def __init__(self):
+    def __init__(self, model="CentSmoothie"):
         resetRandomSeed()
 
         self.data = None
 
         utils.ensure_dir("%s/logs" % params.C_DIR)
-        self.wrapper = WrapperWeightCentSmooth()
+        if model.upper() == "CENTSMOOTHIE":
 
+            self.wrapper = WrapperWeightCentSmooth()
+        else:
+            self.wrapper = WrapperHEGNN()
 
         PREX = "RL_%s_%s" % (params.MAX_R_ADR, params.MAX_R_DRUG)
         logPath = "%s/logs/%s_%s_%s_%s" % (

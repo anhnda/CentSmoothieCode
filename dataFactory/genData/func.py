@@ -167,3 +167,94 @@ def genSMILESFromInchies(inchies):
         smile = inchi2SMILE[inchi]
         allSMILEs.append(smile)
     return allSMILEs
+
+
+def print_db(*msg):
+    if params.PRINT_DB:
+        print(*msg)
+
+
+def trainFold2PairStats(trainFold, nOffDrug):
+    dii = dict()
+    dij = dict()
+    dit = dict()
+    dtt = dict()
+    for tpl in trainFold:
+        i, j, t = tpl
+        to = t - nOffDrug
+        i, j = swap(i, j)
+
+        vdii = utils.get_insert_key_dict(dii, (i, i), [])
+        vdii.append(to)
+        vdjj = utils.get_insert_key_dict(dii, (j, j), [])
+        vdjj.append(to)
+
+        vdji = utils.get_insert_key_dict(dij, (i, j), [])
+        vdji.append(to)
+
+        vdtt = utils.get_insert_key_dict(dtt, (t, t), [])
+        vdtt.append(to)
+
+        vdit = utils.get_insert_key_dict(dit, (i, t), [])
+        vdit.append(to)
+        vdjt = utils.get_insert_key_dict(dit, (j, t), [])
+        vdjt.append(to)
+
+    def dict2Array(d):
+        d2 = dict()
+        for k, v in d.items():
+            v = np.asarray(v, dtype=int)
+            d2[k] = v
+        return d2
+
+    return dict2Array(dii), dict2Array(dij), dict2Array(dit), dict2Array(dtt)
+
+
+def genTrueNegTpl(adrId2Pairid, nDrug, nNegPerADR, kSpace=params.KSPACE):
+    negTpls = []
+
+    allPairs = set()
+    for pairs in adrId2Pairid.values():
+        for pair in pairs:
+            allPairs.add(pair)
+
+    for adrId, pairs in adrId2Pairid.items():
+        adrId = adrId + nDrug
+        ni = 0
+
+        if kSpace:
+            for pair in allPairs:
+                d1, d2 = pair
+
+                d1, d2 = swap(d1, d2)
+                p = (d1, d2)
+                if p not in pairs:
+                    negTpls.append((d1, d2, adrId))
+            continue
+
+        nx = nNegPerADR * np.log(10) / (np.log(len(pairs) + 3))
+
+        while ni < nx:
+            d1, d2 = np.random.randint(0, nDrug, 2)
+            d1, d2 = swap(d1, d2)
+            pair = (d1, d2)
+            if pair not in pairs:
+                ni += 1
+                negTpls.append((d1, d2, adrId))
+    return negTpls
+
+
+def genAdjacency(trainFold, numNode):
+    adjacency = [[] for _ in range(numNode)]
+    edgeSet = set()
+    for triple in trainFold:
+        d1, d2, se = triple
+        d1, d2 = swap(d1, d2)
+        for pair in [(d1, d2), (d1, se), (d2, se)]:
+            if pair not in edgeSet:
+                edgeSet.add(pair)
+    for edge in edgeSet:
+        u, v = edge
+        adjacency[u].append(v)
+        adjacency[v].append(u)
+    return adjacency
