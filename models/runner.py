@@ -3,6 +3,7 @@ from utils import utils
 from utils.logger.logger2 import MyLogger
 from models.trainCentSmoothie import WrapperWeightCentSmooth
 from models.hegnn.trainHEGNN import WrapperHEGNN
+from models.hpnn.trainHPNN import WrapperHPNN
 from dataFactory.dataLoader import DataLoader
 import params
 
@@ -18,9 +19,10 @@ class Runner:
         self.data = None
 
         utils.ensure_dir("%s/logs" % params.C_DIR)
-        if model.upper() == "CENTSMOOTHIE":
-
+        if model.upper().startswith("CENT"):
             self.wrapper = WrapperWeightCentSmooth()
+        elif model.upper().startswith("HPNN"):
+            self.wrapper = WrapperHPNN()
         else:
             self.wrapper = WrapperHEGNN()
 
@@ -48,6 +50,7 @@ class Runner:
         ar = [i for i in range(params.K_FOLD)]
 
         ss = ar
+        ss = [i for i in range(10)]
         print(ss)
         for iFold in ss:
             resetRandomSeed()

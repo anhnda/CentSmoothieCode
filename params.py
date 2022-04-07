@@ -61,6 +61,7 @@ SAMPLE_NEG = 800
 L_METHOD = "Cent"
 
 ON_REAL = True
+P_SYN = 1.0
 DEG_NORM = True
 KSPACE = False
 ONE_HOT = False
@@ -79,6 +80,7 @@ R_TYPE = "L1"
 LAYER_WEIGHT = True
 EMBEDDING_SIZE = 50
 
+GPU_DEVICE = "cuda:0"
 
 NUM_LISTI_WORKER = 10
 PATHWAY = False

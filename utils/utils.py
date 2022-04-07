@@ -4,6 +4,15 @@ import numpy as np
 import joblib
 import os
 import time
+import random
+import params
+import torch
+
+
+def resetRandomSeed():
+    random.seed(params.TORCH_SEED)
+    torch.manual_seed(params.TORCH_SEED)
+    np.random.seed(params.TORCH_SEED)
 
 
 def getCurrentTimeString():
@@ -170,9 +179,10 @@ def getTanimotoScore(ar1, ar2):
     bm = np.dot(ar1, ar2)
     return bm * 1.0 / (c1 + c2 - bm + 1e-10)
 
-def getCosin(ar1, ar2):
 
+def getCosin(ar1, ar2):
     return np.dot(ar1, ar2)
+
 
 def get3WJaccardOnSets(set1, set2):
     len1 = len(set1)

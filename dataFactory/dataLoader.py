@@ -10,27 +10,35 @@ class DataLoader:
     """
     DataLoader loads each fold data given the dataset and the fold Id
     """
+
     def __init__(self, forceCPU=False):
         if forceCPU:
             self.device = torch.device('cpu')
         else:
-            self.device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+            self.device = torch.device(params.GPU_DEVICE if torch.cuda.is_available() else 'cpu')
         pass
 
     def loadData(self, iFold, dataPref=""):
         self.iFold = iFold
         folder = "%s/TWOSIDES" % params.TMP_DIR
+        dataPref = dataPref.upper()
         if dataPref == "C":
             folder = "%s/CADDDI" % params.TMP_DIR
         elif dataPref == "J":
             folder = "%s/JADERDDI" % params.TMP_DIR
+        elif dataPref == "S":
+            folder = "%s/SynDDI" % params.TMP_DIR
 
         print("Loading iFold: ", iFold)
         # print("Folder: ", folder)
         all_p = ""
-
-        dataPath = "%s/%s%s_%d_%d_%d_%s" % (
-            folder, all_p, params.D_PREF, params.MAX_R_ADR, params.MAX_R_DRUG, params.ADR_OFFSET, iFold)
+        if not params.ON_REAL:
+            from dataFactory.genData import synParams
+            dataPath = "%s/S_%d_%d_%1.1f_%d" % (
+                folder, synParams.M_MAX_SE, synParams.M_MAX_DRUG, params.P_SYN, iFold)
+        else:
+            dataPath = "%s/%s%s_%d_%d_%d_%s" % (
+                folder, all_p, params.D_PREF, params.MAX_R_ADR, params.MAX_R_DRUG, params.ADR_OFFSET, iFold)
         print("Data path: ", dataPath)
         data = utils.load_obj(dataPath)
         print(data.nD, data.nSe)

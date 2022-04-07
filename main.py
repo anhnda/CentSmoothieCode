@@ -27,7 +27,18 @@ def parseConfig(options):
     params.DEG_NORM = True
     params.ON_REAL = True
     params.ON_W = True
-    params.D_PREF = options.data
+    params.D_PREF = options.data.upper()
+
+    if params.D_PREF == "S":
+        params.DEG_NORM = False
+        params.ON_REAL = False
+        params.P_SYN = options.psyn
+        params.N_SEC = 1
+
+    if options.simple:
+        params.LEARN_WEIGHT_LAST = False
+        params.LEARN_WEIGHT_IN = False
+
 
 
 def checkDir():
@@ -52,12 +63,14 @@ if __name__ == "__main__":
     parser.add_option("-c", "--oncpu", dest="oncpu", action="store_true")
     parser.add_option("-r", "--run", dest="run", action="store_true")
     parser.add_option("-m", "--model", dest="model", type='str', default="hegnn")
-
+    parser.add_option("-s", "--simple", dest="simple", action="store_true")
     parser.add_option("-v", "--visual", dest="visual", action="store_true")
     parser.add_option("-i", "--iter", dest="iter", type='int', default=params.N_ITER)
     parser.add_option("-y", "--layer", dest="layer", type='int', default=params.N_LAYER)
     parser.add_option("-e", "--emb", dest="emb", type='int', default=params.EMBEDDING_SIZE)
     parser.add_option("-g", "--gen", dest="gen", action="store_true")
+    parser.add_option("-p", "--psyn", dest="psyn", type=float, default=0.5)
+
     parser.add_option("-d", "--data", dest="data", type='str', default="",
                       help="data prefix, either '' for TWOSIDES, 'C' for CADDDI, or 'C'for JADERDDI")
 
