@@ -5,6 +5,7 @@ DATA_DIR = "%s/data" % C_DIR
 TMP_DIR = "%s/tmpOut" % C_DIR
 FIG_DIR = "%s/figs" % C_DIR
 LOG_DIR = "%s/logs" % C_DIR
+OUTPUT_DIR = "%s/res" % C_DIR
 
 DRUGBANK_ATC_INCHI = "%s/DrugBank/ATC_2_Inchikeys.txt" % DATA_DIR
 PPI_FILE = "%s/HPRD/PPI_UNIPROT.txt" % DATA_DIR

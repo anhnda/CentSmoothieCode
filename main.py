@@ -19,7 +19,7 @@ def convertStringToBoolean(val):
 def parseConfig(options):
     print(options)
     params.FORCE_CPU = options.oncpu
-    params.L_METHOD = "Cent"
+    params.L_METHOD = ""
     params.N_ITER = options.iter
     params.N_LAYER = options.layer
     params.EMBEDDING_SIZE = options.emb
@@ -44,7 +44,7 @@ def parseConfig(options):
 def checkDir():
     utils.ensure_dir(params.TMP_DIR)
     utils.ensure_dir(params.LOG_DIR)
-
+    utils.ensure_dir(params.OUTPUT_DIR)
 
 def runMode(opts):
     from models.runner import Runner
@@ -70,7 +70,6 @@ if __name__ == "__main__":
     parser.add_option("-e", "--emb", dest="emb", type='int', default=params.EMBEDDING_SIZE)
     parser.add_option("-g", "--gen", dest="gen", action="store_true")
     parser.add_option("-p", "--psyn", dest="psyn", type=float, default=0.5)
-
     parser.add_option("-d", "--data", dest="data", type='str', default="",
                       help="data prefix, either '' for TWOSIDES, 'C' for CADDDI, or 'C'for JADERDDI")
 
