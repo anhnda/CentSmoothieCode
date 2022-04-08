@@ -21,7 +21,7 @@ def getMSE(a1, a2):
 class WrapperHEGNN:
     def __init__(self, device=torch.device('cpu')):
 
-        self.device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(params.GPU_DEVICE if torch.cuda.is_available() else 'cpu')
         self.name = "HEGNN"
         self.isFitAndPredict = True
 
