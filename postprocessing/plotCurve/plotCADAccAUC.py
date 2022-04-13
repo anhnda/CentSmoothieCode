@@ -1,7 +1,8 @@
 
-
+import params
+C_DIR = params.C_DIR
 def loadData():
-    fin = open("../logs/CAD/Re")
+    fin = open("%s/logs/CAD/Re" % C_DIR)
     Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
@@ -39,7 +40,7 @@ def loadData():
 
 
 def loadData2():
-    fin = open("../logs/CAD/Re2")
+    fin = open("%s/logs/CAD/Re2" % C_DIR)
     Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
@@ -100,8 +101,8 @@ def plot():
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUC', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/CADAccAUC.png')
-    plt.savefig('../figs/CADAccAUC.eps')
+    plt.savefig('%s/figs/CADAccAUC.png' % C_DIR)
+    plt.savefig('%s/figs/CADAccAUC.eps' % C_DIR)
 
 
 def plot2():
@@ -127,8 +128,8 @@ def plot2():
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUPR', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/CADAccAUPR.png')
-    plt.savefig('../figs/CADAccAUPR.eps')
+    plt.savefig('%s/figs/CADAccAUPR.png' % C_DIR)
+    plt.savefig('%s/figs/CADAccAUPR.eps' % C_DIR)
 
 def plotBoth():
     import matplotlib.pyplot as plt
@@ -169,8 +170,8 @@ def plotBoth():
     ax2.set_xlabel('Numbers of the most infrequent side effects', fontsize=14)
     ax2.set_ylabel('AUPR', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/CR.png')
-    plt.savefig('../figs/CR.eps')
+    plt.savefig('%s/figs/CR.png' % C_DIR)
+    plt.savefig('%s/figs/CR.eps' % C_DIR)
     plt.tight_layout()
 
 

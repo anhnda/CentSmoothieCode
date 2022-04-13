@@ -1,5 +1,7 @@
+import params
+C_DIR = params.C_DIR
 def loadData():
-    f = open("../out/re.txt")
+    f = open("%s/out/re.txt"  % C_DIR)
     # methods = ["L_o", "L_n", "L_w"]
     # metrics = ["AUC", "AUPR"]
     # X
@@ -64,8 +66,8 @@ def plot():
         plt.xlabel('Avg. Side effect/ Drug-drug', fontsize=14)
         plt.ylabel(metric, fontsize=12)
         plt.tight_layout()
-        plt.savefig("../figs/SYN_%s.png" % metric)
-        plt.savefig("../figs/SYN_%s.eps" % metric)
+        plt.savefig("%s/figs/SYN_%s.png" % (C_DIR, metric))
+        plt.savefig("%s/figs/SYN_%s.eps"  % (C_DIR, metric))
 
 
 if __name__ == "__main__":

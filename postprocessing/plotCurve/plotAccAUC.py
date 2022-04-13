@@ -1,24 +1,24 @@
+import params
+C_DIR = params.C_DIR
 
 def loadData():
-    fin = open("../logs/JR/Re")
-    Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv","HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
+    fin = open("%s/logs/AccAUC/Re.txt" % C_DIR)
+    Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
-    SUBSIZE = int(947 /20)
+    SUBSIZE = int(947/20)
 
     fin.readline()
     x = []
     for i in range(20):
-        x.append(( i +1 ) *SUBSIZE)
+        x.append((i+1)*SUBSIZE)
     for i in range(len(Methods)):
         fin.readline()
 
         aucLine = fin.readline().strip()
         vs = aucLine.split(",")
         auc = []
-        # print(aucLine)
         for v in vs:
-            v = v.strip()
             auc.append(float(v))
         fin.readline()
 
@@ -26,27 +26,23 @@ def loadData():
         vs = errLine.split(",")
         err = []
         for v in vs:
-            v = v.strip()
-            # print(v)
             err.append(float(v))
-        if i >= 4:
-            auc = auc[::-1]
         aucs.append(auc)
         errs.append(err)
     return Methods, aucs, errs, x
 
 
 def loadData2():
-    fin = open("../logs/JR/Re2")
+    fin = open("%s/logs/AccAUC/Re2.txt" % C_DIR)
     Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
-    SUBSIZE = int(947 /20)
+    SUBSIZE = int(947/20)
 
     fin.readline()
     x = []
     for i in range(20):
-        x.append(( i +1 ) *SUBSIZE)
+        x.append((i+1)*SUBSIZE)
     for i in range(len(Methods)):
         fin.readline()
 
@@ -64,8 +60,6 @@ def loadData2():
         err = []
         for v in vs:
             err.append(float(v.strip()))
-        if i >= 5:
-            auc = auc[::-1]
         aucs.append(auc)
         errs.append(err)
 
@@ -88,7 +82,7 @@ def plot():
 
     for i, method in enumerate(reversed(methods)):
         y, er = aucs[-1 - i], errs[-1 - i]
-
+        print(i, method)
         if i ==4 :
 
             er = np.asarray(er) / 10
@@ -97,8 +91,8 @@ def plot():
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUC', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/JAccAUC.png')
-    plt.savefig('../figs/JAccAUC.eps')
+    plt.savefig('%s/figs/AccAUC.png' % C_DIR)
+    plt.savefig('%s/figs/AccAUC.eps'  % C_DIR)
 
 
 def plot2():
@@ -123,6 +117,10 @@ def plot2():
     plt.legend(loc='lower right')
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUPR', fontsize=12)
+    plt.tight_layout()
+    plt.savefig('%s/figs/AccAUPR.png' % C_DIR)
+    plt.savefig('%s/figs/AccAUPR.eps' % C_DIR)
+
 def plotBoth():
     import matplotlib.pyplot as plt
     import numpy as np
@@ -132,9 +130,12 @@ def plotBoth():
     plt.rc('legend', fontsize=12)
 
     fig, (ax1, ax2) = plt.subplots(1, 2 ,figsize=(10 ,5))
-    methods, aucs, errs, x = loadData()
 
-    fig.suptitle("JADERDDI", fontsize=16)
+    fig.suptitle("TWOSIDES", fontsize=16 )
+
+    methods, aucs, errs, x = loadData()
+    print(len(methods), len(aucs))
+
     # styles = ['-', '--', ':', '-.', 'solid']
     styles = ['-', '--', '-.', ':', 'solid', 'dashed', 'dashdot', 'dotted']
 
@@ -160,11 +161,8 @@ def plotBoth():
     ax2.set_xlabel('Numbers of the most infrequent side effects', fontsize=14)
     ax2.set_ylabel('AUPR', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/JR.png')
-    plt.savefig('../figs/JR.eps')
-
-
-
+    plt.savefig('%s/figs/AR.png' % C_DIR)
+    plt.savefig('%s/figs/AR.eps' % C_DIR)
 
 
 
