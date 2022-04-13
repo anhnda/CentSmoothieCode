@@ -345,34 +345,35 @@ class WrapperHEGNN:
             # self.model.projectNonNegW()
 
             if i % params.ITER_DB == 0:
+
                 print("\r@Iter ", i, end=" ")
                 # print(torch.max(self.model.dimWeightList[0].weight), torch.min(self.model.dimWeightList[0].weight))
                 # print(torch.max(self.model.lastDimWeight.weight), torch.min(self.model.lastDimWeight.weight))
+                with torch.no_grad():
+                    outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
+                    outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
+                    outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
 
-                outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
-                outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
-                outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
+                    if params.ON_REAL:
+                        reSec = []
+                        for kk in range(params.N_SEC):
+                            indicePos = adrSecIndiceTestPos[kk]
+                            indiceNeg = adrSecINdiceTestNeg[kk]
+                            outPosK = outTest[indicePos]
+                            outNegK = outNegTest[indiceNeg]
+                            auck, auprk = evalAUCAUPR1(outPosK, outNegK)
+                            reSec.append([auck, auprk])
+                            if (kk == params.N_SEC - 1):
+                                allResValues.append([outPosK, outNegK])
+                        arSecs.append(reSec)
 
-                if params.ON_REAL:
-                    reSec = []
-                    for kk in range(params.N_SEC):
-                        indicePos = adrSecIndiceTestPos[kk]
-                        indiceNeg = adrSecINdiceTestNeg[kk]
-                        outPosK = outTest[indicePos]
-                        outNegK = outNegTest[indiceNeg]
-                        auck, auprk = evalAUCAUPR1(outPosK, outNegK)
-                        reSec.append([auck, auprk])
-                        if (kk == params.N_SEC - 1):
-                            allResValues.append([outPosK, outNegK])
-                    arSecs.append(reSec)
+                    auc, aupr = evalAUCAUPR1(outTest, outNegTest)
+                    arAUCAUPR.append((auc, aupr))
+                    aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
+                    arAUCVal.append(aucv)
 
-                auc, aupr = evalAUCAUPR1(outTest, outNegTest)
-                arAUCAUPR.append((auc, aupr))
-                aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
-                arAUCVal.append(aucv)
-
-                cTime = time.time()
-                self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
+                    cTime = time.time()
+                    self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
 
         selectedInd = np.argmax(arAUCVal)
         auc, aupr = arAUCAUPR[selectedInd]

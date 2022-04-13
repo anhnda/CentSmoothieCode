@@ -1,7 +1,7 @@
 
 
 def loadData():
-    fin = open("../logs/AccAUC/Re.txt")
+    fin = open("../logs/CAD/Re")
     Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
@@ -17,7 +17,9 @@ def loadData():
         aucLine = fin.readline().strip()
         vs = aucLine.split(",")
         auc = []
+        # print(aucLine)
         for v in vs:
+            v = v.strip()
             auc.append(float(v))
         fin.readline()
 
@@ -25,14 +27,19 @@ def loadData():
         vs = errLine.split(",")
         err = []
         for v in vs:
+            v = v.strip()
+            # print(v)
             err.append(float(v))
+        if i == 6:
+            auc = auc[::-1]
+            pass
         aucs.append(auc)
         errs.append(err)
     return Methods, aucs, errs, x
 
 
 def loadData2():
-    fin = open("../logs/AccAUC/Re2.txt")
+    fin = open("../logs/CAD/Re2")
     Methods = ["MLNN", "MRGNN", "Decagon", "SpecConv", "HETGNN", r'$\mathrm{HPNN}$', r'$\mathrm{CentSimple}$', r'$\mathrm{CentSmoothie}}$']
     aucs = []
     errs = []
@@ -59,6 +66,9 @@ def loadData2():
         err = []
         for v in vs:
             err.append(float(v.strip()))
+        if i == 6:
+            # auc = auc[::-1]
+            pass
         aucs.append(auc)
         errs.append(err)
 
@@ -78,10 +88,10 @@ def plot():
 
     # styles = ['-', '--', ':', '-.', 'solid']
     styles = ['-', '--', '-.', ':',  'solid', 'dashed', 'dashdot', 'dotted']
-
+    print(len(methods))
     for i, method in enumerate(reversed(methods)):
         y, er = aucs[-1 - i], errs[-1 - i]
-        print(i, method)
+
         if i ==4 :
 
             er = np.asarray(er) / 10
@@ -90,8 +100,8 @@ def plot():
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUC', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/AccAUC.png')
-    plt.savefig('../figs/AccAUC.eps')
+    plt.savefig('../figs/CADAccAUC.png')
+    plt.savefig('../figs/CADAccAUC.eps')
 
 
 def plot2():
@@ -117,8 +127,8 @@ def plot2():
     plt.xlabel('Numbers of the most infrequent side effects', fontsize=14)
     plt.ylabel('AUPR', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/AccAUPR.png')
-    plt.savefig('../figs/AccAUPR.eps')
+    plt.savefig('../figs/CADAccAUPR.png')
+    plt.savefig('../figs/CADAccAUPR.eps')
 
 def plotBoth():
     import matplotlib.pyplot as plt
@@ -129,8 +139,7 @@ def plotBoth():
     plt.rc('legend', fontsize=12)
 
     fig, (ax1, ax2) = plt.subplots(1, 2 ,figsize=(10 ,5))
-
-    fig.suptitle("TWOSIDES", fontsize=16 )
+    fig.suptitle("CADDDI", fontsize=16)
 
     methods, aucs, errs, x = loadData()
     print(len(methods), len(aucs))
@@ -160,8 +169,9 @@ def plotBoth():
     ax2.set_xlabel('Numbers of the most infrequent side effects', fontsize=14)
     ax2.set_ylabel('AUPR', fontsize=12)
     plt.tight_layout()
-    plt.savefig('../figs/AR.png')
-    plt.savefig('../figs/AR.eps')
+    plt.savefig('../figs/CR.png')
+    plt.savefig('../figs/CR.eps')
+    plt.tight_layout()
 
 
 

@@ -45,7 +45,7 @@ def checkDir():
     utils.ensure_dir(params.TMP_DIR)
     utils.ensure_dir(params.LOG_DIR)
     utils.ensure_dir(params.OUTPUT_DIR)
-
+    utils.ensure_dir(params.FIG_DIR)
 def runMode(opts):
     from models.runner import Runner
     print("Run model...")
@@ -62,7 +62,7 @@ if __name__ == "__main__":
 
     parser.add_option("-c", "--oncpu", dest="oncpu", action="store_true")
     parser.add_option("-r", "--run", dest="run", action="store_true")
-    parser.add_option("-m", "--model", dest="model", type='str', default="hegnn")
+    parser.add_option("-m", "--model", dest="model", type='str', default="CentSmoothie")
     parser.add_option("-s", "--simple", dest="simple", action="store_true")
     parser.add_option("-v", "--visual", dest="visual", action="store_true")
     parser.add_option("-i", "--iter", dest="iter", type='int', default=params.N_ITER)

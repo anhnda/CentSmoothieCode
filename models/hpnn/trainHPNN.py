@@ -382,8 +382,8 @@ class WrapperHPNN:
             # np.savetxt("%s%sW_%s" % (params.EMBEDDING_PREX, method, iFold), finalX.cpu().detach().numpy())
             # np.savetxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX, method, iFold),
             #            self.model.lastDimWeight.weight.cpu().detach().numpy())
-            # predictedValues = allResValues[selectedInd]
-            # utils.save_obj(predictedValues, "%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
+            predictedValues = allResValues[selectedInd]
+            utils.save_obj(predictedValues, "%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
 
         return auc, aupr, vv
 

@@ -15,9 +15,12 @@ utils.ensure_dir(DATASET_DIR)
 DUMP_FILE = "%s/dump.pkl" % DATASET_DIR
 
 
-def createSubSet(inp_path=params.PATH_TWOSIDES_A):
+def createSubSet(inp_path=params.PATH_TWOSIDES_A, excludeInvalidSe = False):
     def loadInvalidSes():
-        return set(line.strip() for line in open("%s/exception_adrs.txt" % params.DDI_DIR).readlines())
+        if not excludeInvalidSe:
+            return set()
+        else:
+            return set(line.strip() for line in open("%s/exception_adrs.txt" % params.DDI_DIR).readlines())
 
     inchi2FingerPrint = loadPubChem()
     inchiKeys = inchi2FingerPrint.keys()
@@ -82,7 +85,7 @@ def createSubSet(inp_path=params.PATH_TWOSIDES_A):
     drugCountSorted = utils.sort_dict(drugCount)
     validInchi = set()
     m = min(len(drugCount), params.MAX_R_DRUG)
-    MIN_D = 10
+    MIN_D = 5
     for i in range(m):
         inchi, c = drugCountSorted[i]
         if c < MIN_D:
@@ -351,7 +354,7 @@ def genHyperData(onlyFirst=False):
             break
 
 
-def saveId2Name(inp=params.PATH_TWOSIDES_C5):
+def saveId2Name(inp=params.PATH_TWOSIDES_A):
     print_db("DRUG, ADR: ", params.MAX_R_DRUG, params.MAX_R_ADR)
     createSubSet(inp)
     nADR, nDrug, dADR2Pair, orderedADR, inchi2FingerPrint = utils.load_obj(DUMP_FILE)
@@ -363,6 +366,7 @@ def saveId2Name(inp=params.PATH_TWOSIDES_C5):
     dADRId2PairIds = dict()
 
     adrs = sorted(list(dADR2Pair.keys()))
+    assert len(dADR2Pair) == len(orderedADR)
     allPairs = set()
     orderedADRIds = list()
     for adr in adrs:
@@ -392,11 +396,11 @@ def saveId2Name(inp=params.PATH_TWOSIDES_C5):
     dId2DrugName = dict()
     for i in range(len(id2Inchi)):
         dId2DrugName[i] = dINCHI2Name[id2Inchi[i]]
-    utils.save_obj((id2ADr, dId2DrugName), params.ID2NamePath_TWOSIDEC5)
+    utils.save_obj((id2ADr, dId2DrugName), params.ID2NamePath_TWOSIDE)
 
 
 def getBackId(s, d1x, d2x, db=False):
-    id2ADr, dId2DrugName = utils.load_obj(params.ID2NamePath_TWOSIDEC5)
+    id2ADr, dId2DrugName = utils.load_obj(params.ID2NamePath_TWOSIDE)
     if db:
         print("S_", s, id2ADr[s])
         print("D_", d1x, dId2DrugName[d1x])
@@ -422,14 +426,14 @@ def exportFullTWOSIDEs():
 
 
 def writeSED():
-    id2ADr, dId2DrugName = utils.load_obj(params.ID2NamePath_TWOSIDEC5)
-    fSE = open("%s/SeIdNameC5.txt" % DATASET_DIR, "w")
+    id2ADr, dId2DrugName = utils.load_obj(params.ID2NamePath_TWOSIDE)
+    fSE = open("%s/SeIdName.txt" % DATASET_DIR, "w")
     for k in range(len(id2ADr)):
         v = id2ADr[k]
         fSE.write("%s\t%s\n" % (k, v))
     fSE.close()
 
-    fDrug = open("%s/DrugId2NameC5.txt" % DATASET_DIR, "w")
+    fDrug = open("%s/DrugId2Name.txt" % DATASET_DIR, "w")
     for k in range(len(dId2DrugName)):
         v = dId2DrugName[k]
         fDrug.write("%s\t%s\n" % (k, v))
@@ -437,20 +441,12 @@ def writeSED():
 
 
 def run():
-    # For TWOSIDES, there are two data files: one with high quality for only high confident interactions for full
-    # training and extraction (TWOSIDES_C5) and one for all interactions for running K-Folds (TWOSIDE_ALL)
 
-    print("High quality TWOSIDES for full training: ", params.HIGH_TWOSIDES)
-    if params.HIGH_TWOSIDES:
-        global DUMP_FILE
-        DUMP_FILE = "%s_fullC5" % DUMP_FILE
-        resetRandomSeed()
-        saveId2Name()
-        writeSED()
-        resetRandomSeed()
-        exportFullTWOSIDEs()
-    else:
-        exportData()
+    resetRandomSeed()
+    saveId2Name(inp=params.PATH_TWOSIDES_A)
+    writeSED()
+    resetRandomSeed()
+    exportData()
 
 
 if __name__ == "__main__":

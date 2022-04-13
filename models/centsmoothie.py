@@ -59,6 +59,7 @@ class CentSmoothie(torch.nn.Module):
         self.diagI = torch.diag(torch.ones(self.nV)).to(self.device)
         seIndices = [i for i in range(self.nSe)]
         self.seIndices = torch.from_numpy(np.asarray(seIndices)).long().to(self.device)
+        self.defaultAct = torch.nn.Hardshrink(lambd=0.000001)
 
     def getWLoss(self, target, pred, w=params.L_W):
         s = target.shape
@@ -241,13 +242,14 @@ class CentSmoothie(torch.nn.Module):
 
                 if params.LAYER_WEIGHT:
                     x2 = layerWeight(x2)
-                x = F.relu(x2)
+                x = self.defaultAct(x2)
             else:
                 x = torch.matmul(A, x)
                 if params.LAYER_WEIGHT:
                     x = layerWeight(x)
-                x = F.relu(x)
+                x = self.defaultAct(x)
 
+        x = F.relu(x)
         # Last layer:
         if params.ON_REAL:
             lList = self.constructCentL(pos, wids, weights, -1)

@@ -160,7 +160,7 @@ class WrapperWeightCentSmooth:
                 drugPairSet.append([d1, d2])
                 drugIDSet.add(d1)
                 drugIDSet.add(d2)
-
+        print("Num drug pairs", len(drugPairSet))
         mxPair = len(drugPairSet)
         drugIDList = list(drugIDSet)
         from postprocessing.visualization import plotData2
@@ -168,7 +168,9 @@ class WrapperWeightCentSmooth:
         title = r'$\mathrm{CentSmoothie}$'
         plotData2(finalX, "%s_%s" % (method, iFold), title, offset=nD, sid=seIdOf, dPairs=drugPairSet[:mxPair],
                   selectVDrugPair=selectedPairs, drugIDList=drugIDList, dSe2Name=dId2SeName,
-                  dDrug2Name=dId2DrugName)
+                  dDrug2Name=dId2DrugName, ndim=3
+                  )
+
     def exportTopNeg(self, dSeId2Tpls, dSeId2Indices, NegRes, nD, dADR2Name, dDrug2Name, outFile):
         seOfIds = sorted(dSeId2Indices.keys())
         sorteddSeId2Tpls = dict()
@@ -205,6 +207,7 @@ class WrapperWeightCentSmooth:
             fout.write("\n_________\n")
 
         fout.close()
+
     def train(self, dataWrapper, iFold, method="New", printDB=params.PRINT_DB):
         realData = dataWrapper.data
         target = dataWrapper.ddiTensorInDevice
@@ -215,7 +218,6 @@ class WrapperWeightCentSmooth:
             optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
         else:
             optimizer = torch.optim.Adagrad(self.model.parameters(), lr=0.01)
-
 
         trainTpl, testTpl, validTpl, negTestTpl, negValidTpl = realData.trainFold, realData.testFold, \
                                                                realData.validFold, realData.negFold, realData.negFold
@@ -249,25 +251,64 @@ class WrapperWeightCentSmooth:
 
             print("Visualize: ...")
 
-            dataX = np.loadtxt("%s%sW_%s" % (params.EMBEDDING_PREX, method, iFold))
-            wx = np.loadtxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX, method, iFold))
-            dADR2Name, dDrug2Name = utils.load_obj(params.ID2NamePath)
+            dataX = np.loadtxt("%s%sW_%s" % (params.EMBEDDING_PREX2, method, iFold))
+            wx = np.loadtxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX2, method, iFold))
+            dADR2Name, dDrug2Name = utils.load_obj(params.ID2NamePath_TWOSIDE)
             print(len(dADR2Name), len(dDrug2Name))
-            dName2DrugId = utils.reverse_dict(dDrug2Name)
-            drugNamePairs = [[["Diazepam", "Clarithromycin"]],
-                             [["Hydroxyzine", "Warfarin"]],
-                             [["Simvastatin", "Glipizide"]],
-                             [["Prednisone", "Tolterodine"]]]
-            seIds = sortedADRs[-5:]
-            drungIdPairs = []
-            for pList in drugNamePairs:
-                vv = []
-                for p in pList:
-                    d1, d2 = p
-                    vv.append([dName2DrugId[d1], dName2DrugId[d2]])
-                drungIdPairs.append(vv)
+            # dName2DrugId = utils.reverse_dict(dDrug2Name)
+            # drugNamePairs = [[["Diazepam", "Clarithromycin"]],
+            #                  [["Hydroxyzine", "Warfarin"]],
+            #                  [["Simvastatin", "Glipizide"]],
+            #                  [["Prednisone", "Tolterodine"]]]
+
+            #DB:
+            dd = {}
+            for seId, pairs in realData.dADR2Drug.items():
+                dd[dADR2Name[seId]] = len(pairs)
+            kvs = utils.sort_dict(dd)
+            print(kvs)
+
+            print(sortedADRs[::-1][:10])
+            print("Infrequent")
+            for ii in sortedADRs[::-1][:10]:
+                print(dADR2Name[ii], ii)
+            nTop = 3
+            seIds = sortedADRs[-nTop:]
+            # seIds = sortedADRs[:nTop]
+            print("Frequent")
+            seNameList = []
+            for ii in range(len(dADR2Name)):
+                seNameList.append(dADR2Name[ii])
+
+            allSeEmbedding = dataX[realData.nD:, :]
+            allSeEmbedding = allSeEmbedding * wx
+            print(allSeEmbedding.shape)
+            from postprocessing.visualization import plotData3
+            print("Plotting all se")
+            selectedSes = seIds
+            for seId in seIds:
+                print(dADR2Name[seId], seId)
+            from postprocessing.visualization import plotData4
+
+            seName2Id = utils.reverse_dict(dADR2Name)
+            names = ["panniculitis"]
+            selectedSes = [seName2Id[name] for name in names]
+            for se in selectedSes:
+
+                plotData4(allSeEmbedding, offset=realData.nD, selectedSEs=[se], dADR2Name=dADR2Name)
+            exit(-1)
+            for ii in sortedADRs[:10]:
+                print(dADR2Name[ii], ii)
+            # drungIdPairs = []
+            # for pList in drugNamePairs:
+            #     vv = []
+            #     for p in pList:
+            #         d1, d2 = p
+            #         vv.append([dName2DrugId[d1], dName2DrugId[d2]])
+            #     drungIdPairs.append(vv)
 
             for ii, seId in enumerate(seIds):
+                print(dADR2Name[seId], seId)
                 w = wx[seId]
                 dataXW = dataX * np.tile(w, (dataX.shape[0], 1))
                 self.visual2(trainTpl, seId, realData.nD, dataXW, method, [], iFold, dADR2Name, dDrug2Name)
@@ -281,7 +322,6 @@ class WrapperWeightCentSmooth:
         # print(D.shape, D[:10])
 
         dd = self.convertAllDict2LongList(realData.trainPairStats, model.nV)
-
 
         # trainIds = torch.from_numpy(np.asarray(trainTpl)).long().to(self.device)
         testIds = torch.from_numpy(np.asarray(testTpl)).long().to(self.device)
@@ -326,33 +366,34 @@ class WrapperWeightCentSmooth:
 
             if i % params.ITER_DB == 0:
                 print("\r@Iter ", i, end=" ")
-                print(torch.max(self.model.dimWeightList[0].weight), torch.min(self.model.dimWeightList[0].weight))
-                print(torch.max(self.model.lastDimWeight.weight), torch.min(self.model.lastDimWeight.weight))
+                with torch.no_grad():
+                    print(torch.max(self.model.dimWeightList[0].weight), torch.min(self.model.dimWeightList[0].weight))
+                    print(torch.max(self.model.lastDimWeight.weight), torch.min(self.model.lastDimWeight.weight))
 
-                outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
-                outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
-                outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
+                    outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
+                    outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
+                    outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
 
-                if params.ON_REAL:
-                    reSec = []
-                    for kk in range(params.N_SEC):
-                        indicePos = adrSecIndiceTestPos[kk]
-                        indiceNeg = adrSecINdiceTestNeg[kk]
-                        outPosK = outTest[indicePos]
-                        outNegK = outNegTest[indiceNeg]
-                        auck, auprk = evalAUCAUPR1(outPosK, outNegK)
-                        reSec.append([auck, auprk])
-                        if (kk == params.N_SEC - 1):
-                            allResValues.append([outPosK, outNegK])
-                    arSecs.append(reSec)
+                    if params.ON_REAL:
+                        reSec = []
+                        for kk in range(params.N_SEC):
+                            indicePos = adrSecIndiceTestPos[kk]
+                            indiceNeg = adrSecINdiceTestNeg[kk]
+                            outPosK = outTest[indicePos]
+                            outNegK = outNegTest[indiceNeg]
+                            auck, auprk = evalAUCAUPR1(outPosK, outNegK)
+                            reSec.append([auck, auprk])
+                            if (kk == params.N_SEC - 1):
+                                allResValues.append([outPosK, outNegK])
+                        arSecs.append(reSec)
 
-                auc, aupr = evalAUCAUPR1(outTest, outNegTest)
-                arAUCAUPR.append((auc, aupr))
-                aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
-                arAUCVal.append(aucv)
+                    auc, aupr = evalAUCAUPR1(outTest, outNegTest)
+                    arAUCAUPR.append((auc, aupr))
+                    aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
+                    arAUCVal.append(aucv)
 
-                cTime = time.time()
-                self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
+                    cTime = time.time()
+                    self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
 
         selectedInd = np.argmax(arAUCVal)
         auc, aupr = arAUCAUPR[selectedInd]
@@ -364,7 +405,7 @@ class WrapperWeightCentSmooth:
             np.savetxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX, method, iFold),
                        self.model.lastDimWeight.weight.cpu().detach().numpy())
             predictedValues = allResValues[selectedInd]
-            utils.save_obj(predictedValues, "%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
+            utils.save_obj(predictedValues, "%s/Cent_SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
 
         return auc, aupr, vv
 
