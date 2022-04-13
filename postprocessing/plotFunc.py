@@ -39,16 +39,16 @@ def plotData(data, name, title, offset=-1, sid=-1, d1=-1, d2=-1, method="pca", n
     fig = plt.figure()
     if method == "tnse":
 
-        tsne = TSNE(n_components=ndim, verbose=1, perplexity=40, n_iter=300)
+        reduction = TSNE(n_components=ndim, verbose=1, perplexity=40, n_iter=300)
     else:
-        tsne = PCA(n_components=ndim)
+        reduction = PCA(n_components=ndim)
 
-    tsne_results = tsne.fit_transform(data)
+    ndData = reduction.fit_transform(data)
 
     if ndim == 2:
         df_subset = dict()
-        df_subset['x'] = tsne_results[:, 0]
-        df_subset['y'] = tsne_results[:, 1]
+        df_subset['x'] = ndData[:, 0]
+        df_subset['y'] = ndData[:, 1]
         sns.scatterplot(
             x="x", y="y",
             hue="y",
@@ -66,7 +66,7 @@ def plotData(data, name, title, offset=-1, sid=-1, d1=-1, d2=-1, method="pca", n
         plt.savefig("figs/%s_%s_%s.png" % (name, method, ndim))
 
     else:
-        x, y, z = tsne_results[:, 0], tsne_results[:, 1], tsne_results[:, 2]
+        x, y, z = ndData[:, 0], ndData[:, 1], ndData[:, 2]
         rmx = max((np.max(np.fabs(x)), np.max(np.fabs(y)), np.max(np.fabs(z))))
 
         x = x / rmx
@@ -158,10 +158,10 @@ def plotData2(data, name, title, offset=-1, sid=-1, dPairs=[], selectVDrugPair =
     # ll2 = [i for i in range(offset)]
 
     # data = data[ll]
-    # tsne_results = dimReducer.fit_transform(data)
+    # ndData = dimReducer.fit_transform(data)
     print(data.shape)
-    tsne_results = dimReducer.fit_transform(data)
-    tsne_results = tsne_results[ll]
+    ndData = dimReducer.fit_transform(data)
+    ndData = ndData[ll]
 
     # if len(drugIDList) > 0:
     #     drugIDList.append(offset)
@@ -176,15 +176,15 @@ def plotData2(data, name, title, offset=-1, sid=-1, dPairs=[], selectVDrugPair =
         dRemapDrug[d] = d
     dRemapDrug[sid] = offset
 
-    # tsne_results = tsne_results[drugIDList]
-    print(tsne_results.shape)
+    # ndData = ndData[drugIDList]
+    print(ndData.shape)
     #
     for i in range(offset):
         if i not in validDrugList:
             noDrugList.append(i)
     print("Start....")
     if ndim == 2:
-        x, y = tsne_results[:, 0], tsne_results[:, 1]
+        x, y = ndData[:, 0], ndData[:, 1]
         rmx = max((np.max(np.fabs(x)), np.max(np.fabs(y))))
 
         x = x / rmx
@@ -257,7 +257,7 @@ def plotData2(data, name, title, offset=-1, sid=-1, dPairs=[], selectVDrugPair =
         dLable = 'Drug'
         if nonre:
             dLable = 'Relevant drug'
-        x, y, z = tsne_results[:, 0], tsne_results[:, 1], tsne_results[:, 2]
+        x, y, z = ndData[:, 0], ndData[:, 1], ndData[:, 2]
         rmx = max((np.max(np.fabs(x)), np.max(np.fabs(y)), np.max(np.fabs(z))))
 
         x = x / rmx
@@ -325,7 +325,7 @@ def plotData2(data, name, title, offset=-1, sid=-1, dPairs=[], selectVDrugPair =
                     for vdi in p:
                         print(vdi)
                         vdText = dDrug2Name[vdi]
-                        xvdi, yvdi, zvdi = tsne_results[vdi,0], tsne_results[vdi,1], tsne_results[vdi,2]
+                        xvdi, yvdi, zvdi = ndData[vdi,0], ndData[vdi,1], ndData[vdi,2]
                         ax.annotate3D(vdText, (xvdi, yvdi, zvdi),
                                        xytext=(30, 30),
                                        textcoords='offset points',
@@ -366,10 +366,10 @@ def plotData3(data, title="", offset=-1, selectedSEs = [], dADR2Name = {}, metho
     print(data.shape)
 
 
-    tsne_results = dimReducer.fit_transform(data)
+    ndData = dimReducer.fit_transform(data)
 
-    # tsne_results = dimReducer.fit_transform(data)
-    # tsne_results = tsne_results[ll]
+    # ndData = dimReducer.fit_transform(data)
+    # ndData = ndData[ll]
 
     # if len(drugIDList) > 0:
     #     drugIDList.append(offset)
@@ -381,7 +381,7 @@ def plotData3(data, title="", offset=-1, selectedSEs = [], dADR2Name = {}, metho
 
     print("AAAAAAAAAAAAAAAAAA 1")
 
-    x, y, z = tsne_results[:, 0], tsne_results[:, 1], tsne_results[:, 2]
+    x, y, z = ndData[:, 0], ndData[:, 1], ndData[:, 2]
     rmx = max((np.max(np.fabs(x)), np.max(np.fabs(y)), np.max(np.fabs(z))))
 
     x = x / rmx
@@ -425,10 +425,10 @@ def plotData4(data, title="", offset=-1, selectedSEs = [], dADR2Name = {}, metho
     print(data.shape)
 
 
-    tsne_results = dimReducer.fit_transform(data)
+    ndData = dimReducer.fit_transform(data)
 
-    # tsne_results = dimReducer.fit_transform(data)
-    # tsne_results = tsne_results[ll]
+    # ndData = dimReducer.fit_transform(data)
+    # ndData = ndData[ll]
 
     # if len(drugIDList) > 0:
     #     drugIDList.append(offset)
@@ -440,7 +440,7 @@ def plotData4(data, title="", offset=-1, selectedSEs = [], dADR2Name = {}, metho
 
     print("AAAAAAAAAAAAAAAAAA 1")
 
-    x, y, z = tsne_results[:, 0], tsne_results[:, 1], tsne_results[:, 2]
+    x, y, z = ndData[:, 0], ndData[:, 1], ndData[:, 2]
     rmx = max((np.max(np.fabs(x)), np.max(np.fabs(y)), np.max(np.fabs(z))))
 
     x = x / rmx
@@ -453,7 +453,7 @@ def plotData4(data, title="", offset=-1, selectedSEs = [], dADR2Name = {}, metho
     ax.scatter3D(x, y, z, c='blue', marker='.', alpha=0.01, s=2)
 
     from scipy.spatial import distance_matrix as dm
-    mm = dm(tsne_results, tsne_results)
+    mm = dm(ndData, ndData)
     np.fill_diagonal(mm, 10000)
 
     mainSe = ""
