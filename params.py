@@ -62,7 +62,7 @@ ADR_OFFSET = 0
 SAMPLE_NEG = 800
 
 
-L_METHOD = "Cent"
+MODEL = ""
 
 ON_REAL = True
 P_SYN = 1.0

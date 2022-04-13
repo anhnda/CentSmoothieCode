@@ -152,77 +152,7 @@ class WrapperHPNN:
 
         fout.close()
 
-    def sampleRandomWalk(self, adjacency, drugOffset, toTensor=True, device=None):
-        nNodes = len(adjacency)
-        randomWalkList = [[[], []] for _ in range(nNodes)]
-        maxNeighbor = 100
-        maxDrugNeighbor = 70
-        # print("N nodes: ", nNodes, drugOffset)
-        for iNode in range(nNodes):
-            # print(iNode)
-            nNeighbor = 0
-            nDrugNeighbor = 0
-            currentNode = iNode
-            if len(adjacency[currentNode]) == 0:
-                print("No neighbor for: ", currentNode)
-                continue
-            # print(adjacency[currentNode])
-            while nNeighbor < maxNeighbor:
-                p = random.random()
-                if p > 0.5:
-                    currentNeighbors = adjacency[currentNode]
-                    if len(currentNeighbors) > 0:
-                        sampledNode = random.choice(currentNeighbors)
-                        currentNode = sampledNode
 
-                        nodeType = 0  # Default to drug
-                        if sampledNode >= drugOffset:
-                            nodeType = 1  # SE
-                        if nodeType == 0:
-                            if nDrugNeighbor < maxDrugNeighbor:
-                                nDrugNeighbor += 1
-                            else:
-                                continue
-                        randomWalkList[iNode][nodeType].append(sampledNode)
-
-                        nNeighbor += 1
-
-                else:
-                    currentNode = iNode
-        # print("Next")
-        sampledNodeList = [[[], []] for _ in range(nNodes)]
-        sampledNodeSize = []
-        for iNode in range(nNodes):
-            neighbors = randomWalkList[iNode]
-            topKs = [10, 3]
-            nSize = []
-
-            for i in range(2):
-                neighbor = neighbors[i]
-                topK = topKs[i]
-                cs = Counter(neighbor)
-                topList = cs.most_common(topK)
-                sz = len(topList)
-                for j in range(sz):
-                    sampledNodeList[iNode][i].append(topList[j][0])
-                random.shuffle(sampledNodeList[iNode][i])
-
-                nSize.append(sz)
-            sampledNodeSize.append(nSize)
-        if toTensor:
-            drugNeighborList = []
-            seNeighborList = []
-            for i in range(nNodes):
-                drugNeighborList.append(sampledNodeList[i][0])
-                seNeighborList.append(sampledNodeList[i][1])
-            drugNeighborList = torch.from_numpy(np.asarray(drugNeighborList)).long()
-            seNeighborList = torch.from_numpy(np.asarray(seNeighborList)).long()
-            if device is not None:
-                drugNeighborList = drugNeighborList.to(device)
-                seNeighborList = seNeighborList.to(device)
-            sampledNodeList = (drugNeighborList, seNeighborList)
-
-        return sampledNodeList, sampledNodeSize
 
 
     def train(self, dataWrapper, iFold, method="New", printDB=params.PRINT_DB):
@@ -347,31 +277,31 @@ class WrapperHPNN:
                 print("\r@Iter ", i, end=" ")
                 # print(torch.max(self.model.dimWeightList[0].weight), torch.min(self.model.dimWeightList[0].weight))
                 # print(torch.max(self.model.lastDimWeight.weight), torch.min(self.model.lastDimWeight.weight))
+                with torch.no_grad():
+                    outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
+                    outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
+                    outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
 
-                outTest = self.model.forward2(finalX, testIds).cpu().detach().numpy()
-                outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
-                outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
+                    if params.ON_REAL:
+                        reSec = []
+                        for kk in range(params.N_SEC):
+                            indicePos = adrSecIndiceTestPos[kk]
+                            indiceNeg = adrSecINdiceTestNeg[kk]
+                            outPosK = outTest[indicePos]
+                            outNegK = outNegTest[indiceNeg]
+                            auck, auprk = evalAUCAUPR1(outPosK, outNegK)
+                            reSec.append([auck, auprk])
+                            if (kk == params.N_SEC - 1):
+                                allResValues.append([outPosK, outNegK])
+                        arSecs.append(reSec)
 
-                if params.ON_REAL:
-                    reSec = []
-                    for kk in range(params.N_SEC):
-                        indicePos = adrSecIndiceTestPos[kk]
-                        indiceNeg = adrSecINdiceTestNeg[kk]
-                        outPosK = outTest[indicePos]
-                        outNegK = outNegTest[indiceNeg]
-                        auck, auprk = evalAUCAUPR1(outPosK, outNegK)
-                        reSec.append([auck, auprk])
-                        if (kk == params.N_SEC - 1):
-                            allResValues.append([outPosK, outNegK])
-                    arSecs.append(reSec)
+                    auc, aupr = evalAUCAUPR1(outTest, outNegTest)
+                    arAUCAUPR.append((auc, aupr))
+                    aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
+                    arAUCVal.append(aucv)
 
-                auc, aupr = evalAUCAUPR1(outTest, outNegTest)
-                arAUCAUPR.append((auc, aupr))
-                aucv, auprv = evalAUCAUPR1(outValid, outNegTest)
-                arAUCVal.append(aucv)
-
-                cTime = time.time()
-                self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
+                    cTime = time.time()
+                    self.logger.infoAll((auc, aucv, aupr, "Elapse@:", i, cTime - startTime))
 
         selectedInd = np.argmax(arAUCVal)
         auc, aupr = arAUCAUPR[selectedInd]
@@ -382,7 +312,7 @@ class WrapperHPNN:
             # np.savetxt("%s%sW_%s" % (params.EMBEDDING_PREX, method, iFold), finalX.cpu().detach().numpy())
             # np.savetxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX, method, iFold),
             #            self.model.lastDimWeight.weight.cpu().detach().numpy())
-            predictedValues = allResValues[selectedInd]
+            predictedValues = allResValues[selectedInd].reshape(-1)
             utils.save_obj(predictedValues, "%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
 
         return auc, aupr, vv

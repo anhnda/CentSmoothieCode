@@ -34,12 +34,12 @@ class Runner:
 
         PREX = "RL_%s_%s" % (params.MAX_R_ADR, params.MAX_R_DRUG)
         logPath = "%s/logs/%s_%s_%s_%s" % (
-        params.C_DIR, PREX, self.wrapper.name, params.L_METHOD, utils.getCurrentTimeString())
+            params.C_DIR, PREX, self.wrapper.name, params.MODEL, utils.getCurrentTimeString())
         self.logger = MyLogger(logPath)
         self.wrapper.setLogger(self.logger)
 
     def run(self):
-        method = params.L_METHOD
+        method = params.MODEL
         aucs = []
         auprs = []
         aucks = []
@@ -82,7 +82,7 @@ class Runner:
         mauc, eauc = getMeanSE(aucs)
         maupr, eaupr = getMeanSE(auprs)
 
-        self.logger.infoAll(params.L_METHOD)
+        self.logger.infoAll(params.MODEL)
         self.logger.infoAll((mauc, eauc))
         self.logger.infoAll((maupr, eaupr))
 

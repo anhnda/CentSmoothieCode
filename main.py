@@ -19,7 +19,6 @@ def convertStringToBoolean(val):
 def parseConfig(options):
     print(options)
     params.FORCE_CPU = options.oncpu
-    params.L_METHOD = ""
     params.N_ITER = options.iter
     params.N_LAYER = options.layer
     params.EMBEDDING_SIZE = options.emb
@@ -28,6 +27,7 @@ def parseConfig(options):
     params.ON_REAL = True
     params.ON_W = True
     params.D_PREF = options.data.upper()
+    params.EXPORT_TOP_NEG = options.export
 
     if params.D_PREF == "S":
         params.DEG_NORM = False
@@ -39,19 +39,46 @@ def parseConfig(options):
         params.LEARN_WEIGHT_LAST = False
         params.LEARN_WEIGHT_IN = False
 
+    if options.model.upper().startswith("HP"):
+        options.model = "HPNN"
+    elif options.model.upper().startswith("CENT"):
+        options.model = "CentSmoothie"
+    elif options.model.upper().startswith("DECA"):
+        options.model = "Decagon"
+    elif options.model.upper().startswith("HE"):
+        options.model = "HEGNN"
 
+    params.MODEL = options.model
 
 def checkDir():
     utils.ensure_dir(params.TMP_DIR)
     utils.ensure_dir(params.LOG_DIR)
     utils.ensure_dir(params.OUTPUT_DIR)
     utils.ensure_dir(params.FIG_DIR)
+
+
 def runMode(opts):
     from models.runner import Runner
     print("Run model...")
     runner = Runner(model=opts.model)
     runner.run()
 
+
+def visual(opts):
+    from dataFactory.dataLoader import DataLoader
+    from postprocessing.visualization import visual
+    wrapper = DataLoader()
+    wrapper.loadData(opts.fold, dataPref=params.D_PREF)
+    visual(wrapper.data, opts.model, opts.fold)
+
+
+def export(opts):
+
+    from dataFactory.dataLoader import DataLoader
+    from postprocessing.exportTopNeg import exportTopNeg
+    wrapper = DataLoader()
+    wrapper.loadData(opts.fold, dataPref=params.D_PREF)
+    exportTopNeg(wrapper.data, opts.model, opts.fold)
 
 if __name__ == "__main__":
     import params
@@ -62,6 +89,9 @@ if __name__ == "__main__":
 
     parser.add_option("-c", "--oncpu", dest="oncpu", action="store_true")
     parser.add_option("-r", "--run", dest="run", action="store_true")
+    parser.add_option("-x", "--export", dest="export", action="store_true")
+    parser.add_option("-f", "--fold", dest="fold", type='int', default=0)
+
     parser.add_option("-m", "--model", dest="model", type='str', default="CentSmoothie")
     parser.add_option("-s", "--simple", dest="simple", action="store_true")
     parser.add_option("-v", "--visual", dest="visual", action="store_true")
@@ -81,12 +111,18 @@ if __name__ == "__main__":
         from models.runner import resetRandomSeed
 
         resetRandomSeed()
-
-        if options.gen:
-            print("Generating data...")
-            genData.genDataByPref(options.data)
-            exit(-1)
-
+        print("Generating data...")
+        genData.genDataByPref(options.data)
         exit(-1)
-    if options.run:
+
+    elif options.visual:
+        print("Visualization...")
+        visual(options)
+        exit(-1)
+    elif options.export:
+        print("Exporting...")
+        export(options)
+        exit(-1)
+    elif options.run:
+        print("Training...")
         runMode(options)

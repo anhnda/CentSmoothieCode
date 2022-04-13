@@ -112,101 +112,7 @@ class WrapperWeightCentSmooth:
             res.append(np.asarray(indice))
         return res
 
-    def loadNegIds(self, ses, secs, tpls, segId=0):
-        secs = secs[::-1]
-        sz = len(secs)
-        indices = [[] for _ in range(sz)]
-        dSeId2Tpls = dict()
 
-        dSeId2Indices = dict()
-
-        ses2 = set(ses)
-
-        for seOfId in ses:
-            dSeId2Tpls[seOfId] = []
-            dSeId2Indices[seOfId] = []
-        for ii, tpl in enumerate(tpls):
-            _, _, adrIdOf = tpl
-            i = sz
-            for i, sec in enumerate(secs):
-                if adrIdOf in sec:
-                    break
-
-            for j in range(i, sz):
-                indices[j].append(ii)
-        selectedIndices1 = indices[segId]
-        for idx in selectedIndices1:
-            tpt = tpls[idx]
-            _, _, adrIdOf = tpt
-            if adrIdOf in ses2:
-                dSeId2Tpls[adrIdOf].append(tpt)
-                dSeId2Indices[adrIdOf].append(idx)
-
-        for k, v in dSeId2Tpls.items():
-            dSeId2Tpls[k] = np.asarray(v)
-
-        return dSeId2Tpls, dSeId2Indices
-
-    def visual2(self, trainTpl, seId, nD, finalX, method, selectedPairs=[], iFold=5, dId2SeName={}, dId2DrugName={}):
-        finalX = finalX / np.max(np.fabs(finalX))
-        print("MAX V", np.max(finalX))
-        print(selectedPairs)
-        drugIDSet = set()
-        seIdOf = seId + nD
-        drugPairSet = []
-        for tpl in trainTpl:
-            d1, d2, s = tpl
-            if s == seIdOf:
-                drugPairSet.append([d1, d2])
-                drugIDSet.add(d1)
-                drugIDSet.add(d2)
-        print("Num drug pairs", len(drugPairSet))
-        mxPair = len(drugPairSet)
-        drugIDList = list(drugIDSet)
-        from postprocessing.visualization import plotData2
-
-        title = r'$\mathrm{CentSmoothie}$'
-        plotData2(finalX, "%s_%s" % (method, iFold), title, offset=nD, sid=seIdOf, dPairs=drugPairSet[:mxPair],
-                  selectVDrugPair=selectedPairs, drugIDList=drugIDList, dSe2Name=dId2SeName,
-                  dDrug2Name=dId2DrugName, ndim=3
-                  )
-
-    def exportTopNeg(self, dSeId2Tpls, dSeId2Indices, NegRes, nD, dADR2Name, dDrug2Name, outFile):
-        seOfIds = sorted(dSeId2Indices.keys())
-        sorteddSeId2Tpls = dict()
-        sortedSeId2Scores = dict()
-        for seOfId in seOfIds:
-            indices = dSeId2Indices[seOfId]
-            tpls = dSeId2Tpls[seOfId]
-
-            res = NegRes[indices]
-            assert len(res) == len(tpls)
-
-            sortedIndiceScores = np.argsort(res)[::-1]
-            assert res[sortedIndiceScores[0]] >= res[sortedIndiceScores[1]]
-            # print(res[sortedIndiceScores[0]])
-            rr = []
-            orr = dSeId2Tpls[seOfId]
-            rscore = []
-            for idx in sortedIndiceScores:
-                d1, d2, _ = orr[idx]
-                rr.append((d1, d2))
-                rscore.append(res[idx])
-
-            sorteddSeId2Tpls[seOfId - nD] = rr
-            sortedSeId2Scores[seOfId - nD] = rscore
-        fout = open(outFile, "w")
-        for k, v in sorteddSeId2Tpls.items():
-            adrName = dADR2Name[k]
-            drugPairs = v
-            rscore = sortedSeId2Scores[k]
-            fout.write("%s\n" % adrName)
-            for ii, pair in enumerate(drugPairs):
-                d1, d2 = pair
-                fout.write("\t%s, %s, %s\n" % (dDrug2Name[d1], dDrug2Name[d2], rscore[ii]))
-            fout.write("\n_________\n")
-
-        fout.close()
 
     def train(self, dataWrapper, iFold, method="New", printDB=params.PRINT_DB):
         realData = dataWrapper.data
@@ -236,84 +142,7 @@ class WrapperWeightCentSmooth:
         adrSecIndiceTestPos = self.selectSubIndices(secs, testTpl)
         adrSecINdiceTestNeg = self.selectSubIndices(secs, negTestTpl)
 
-        if params.EXPORT_TOP_NEG:
-            print("Exporting TOP NEGs...")
-            dAdrName, dDrugName = utils.load_obj(params.ID2NamePath)
-            outFile = "%s/Export_TOP_NEG_%s_%s" % (params.OUTPUT_DIR, method, iFold)
-            predictedValues = utils.load_obj("%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
-            _, outNegK = predictedValues
-            ses = secsList[-1][-50:]
-            dSeId2Tpls, dSeId2Indices = self.loadNegIds(ses, secs, negTestTpl, segId=-1)
-            self.exportTopNeg(dSeId2Tpls, dSeId2Indices, outNegK, realData.nD, dAdrName, dDrugName, outFile)
-            exit(-1)
 
-        if params.VISUAL:
-
-            print("Visualize: ...")
-
-            dataX = np.loadtxt("%s%sW_%s" % (params.EMBEDDING_PREX2, method, iFold))
-            wx = np.loadtxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX2, method, iFold))
-            dADR2Name, dDrug2Name = utils.load_obj(params.ID2NamePath_TWOSIDE)
-            print(len(dADR2Name), len(dDrug2Name))
-            # dName2DrugId = utils.reverse_dict(dDrug2Name)
-            # drugNamePairs = [[["Diazepam", "Clarithromycin"]],
-            #                  [["Hydroxyzine", "Warfarin"]],
-            #                  [["Simvastatin", "Glipizide"]],
-            #                  [["Prednisone", "Tolterodine"]]]
-
-            #DB:
-            dd = {}
-            for seId, pairs in realData.dADR2Drug.items():
-                dd[dADR2Name[seId]] = len(pairs)
-            kvs = utils.sort_dict(dd)
-            print(kvs)
-
-            print(sortedADRs[::-1][:10])
-            print("Infrequent")
-            for ii in sortedADRs[::-1][:10]:
-                print(dADR2Name[ii], ii)
-            nTop = 3
-            seIds = sortedADRs[-nTop:]
-            # seIds = sortedADRs[:nTop]
-            print("Frequent")
-            seNameList = []
-            for ii in range(len(dADR2Name)):
-                seNameList.append(dADR2Name[ii])
-
-            allSeEmbedding = dataX[realData.nD:, :]
-            allSeEmbedding = allSeEmbedding * wx
-            print(allSeEmbedding.shape)
-            from postprocessing.visualization import plotData3
-            print("Plotting all se")
-            selectedSes = seIds
-            for seId in seIds:
-                print(dADR2Name[seId], seId)
-            from postprocessing.visualization import plotData4
-
-            seName2Id = utils.reverse_dict(dADR2Name)
-            names = ["panniculitis"]
-            selectedSes = [seName2Id[name] for name in names]
-            for se in selectedSes:
-
-                plotData4(allSeEmbedding, offset=realData.nD, selectedSEs=[se], dADR2Name=dADR2Name)
-            exit(-1)
-            for ii in sortedADRs[:10]:
-                print(dADR2Name[ii], ii)
-            # drungIdPairs = []
-            # for pList in drugNamePairs:
-            #     vv = []
-            #     for p in pList:
-            #         d1, d2 = p
-            #         vv.append([dName2DrugId[d1], dName2DrugId[d2]])
-            #     drungIdPairs.append(vv)
-
-            for ii, seId in enumerate(seIds):
-                print(dADR2Name[seId], seId)
-                w = wx[seId]
-                dataXW = dataX * np.tile(w, (dataX.shape[0], 1))
-                self.visual2(trainTpl, seId, realData.nD, dataXW, method, [], iFold, dADR2Name, dDrug2Name)
-            exit(-1)
-            return 0, 0, 0
 
         # A = realData.AFold
         # D = realData.DFold
@@ -374,6 +203,10 @@ class WrapperWeightCentSmooth:
                     outValid = self.model.forward2(finalX, validIds).cpu().detach().numpy()
                     outNegTest = self.model.forward2(finalX, negTestIds).cpu().detach().numpy()
 
+                    print(outTest[:20])
+                    print(outValid[:20])
+                    print(outNegTest[:20])
+
                     if params.ON_REAL:
                         reSec = []
                         for kk in range(params.N_SEC):
@@ -405,7 +238,7 @@ class WrapperWeightCentSmooth:
             np.savetxt("%s%sW_Weight%s" % (params.EMBEDDING_PREX, method, iFold),
                        self.model.lastDimWeight.weight.cpu().detach().numpy())
             predictedValues = allResValues[selectedInd]
-            utils.save_obj(predictedValues, "%s/Cent_SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
+            utils.save_obj(predictedValues, "%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
 
         return auc, aupr, vv
 

@@ -148,8 +148,6 @@ class WrapperDecagon:
 
         return dSeId2Tpls, dSeId2Indices
 
-
-
     def convertPairLabel(self, ddPos, ddNeg, sz):
         pairs = []
         allAnchor = []
@@ -179,8 +177,6 @@ class WrapperDecagon:
         return torch.from_numpy(np.asarray(pairs)).long().to(self.device), torch.from_numpy(
             np.asarray(allAnchor)).long().to(self.device), \
                torch.from_numpy(np.asarray(trueLabels)).float().to(self.device)
-
-
 
     def convertPairLabelWithLabelP(self, ddPos, ddNeg, sz):
         pairs = []
@@ -236,7 +232,7 @@ class WrapperDecagon:
         realData = dataWrapper.data
         target = dataWrapper.ddiTensorInDevice
         model = Decagon(realData.featureSize, params.EMBEDDING_SIZE, nSe=realData.nSe, nD=realData.nD,
-                        nPro=realData.nPro, device=self.device)
+                        nPro=realData.nPro, nLayer=params.N_LAYER, device=self.device)
 
         self.model = model.to(self.device)
 
@@ -252,7 +248,6 @@ class WrapperDecagon:
         validPosPair2Label = realData.pValidPosLabel
         testPosPair2Label = realData.pTestPosLabel
         testNegPair2Label = realData.pTestNegLabel
-
 
         # trainPairs, trainAnchor, trainLabel = self.convertPairLabel(edge2Label, testNegPair2Label, realData.nSe)
         # validPairs, validAnchor, validLabel = self.convertPairLabel(validPosPair2Label, testNegPair2Label, realData.nSe)
@@ -367,12 +362,14 @@ def evalAUCAUPR1(outPos, outNeg):
     auc = roc_auc_score(trueOut, predicted)
     return auc, aupr
 
-def evalAUCAUPROrigin(out, target):
 
+def evalAUCAUPROrigin(out, target):
     if np.sum(target) == 0 or np.sum(target) == target.shape[-1]:
         return 0.5, 0.5
     aupr = average_precision_score(target, out)
     auc = roc_auc_score(target, out)
     return auc, aupr
+
+
 if __name__ == "__main__":
     pass

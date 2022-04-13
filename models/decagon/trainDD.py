@@ -8,6 +8,7 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 import time
 from utils import utils
 
+
 def getMSE(a1, a2):
     v = a1 - a2
     v = np.multiply(v, v)
@@ -23,6 +24,7 @@ class WrapperDecagon:
             self.device = torch.device('cpu')
         else:
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
     def setLogger(self, logger):
         self.logger = logger
         self.logger.infoAll(inspect.getsource(Decagon))
@@ -67,7 +69,8 @@ class WrapperDecagon:
                     allAnchor.append(offset + l)
                     trueLabels.append(0)
 
-        return torch.from_numpy(np.asarray(pairs)).long().to(self.device), torch.from_numpy(np.asarray(allAnchor)).long().to(self.device), \
+        return torch.from_numpy(np.asarray(pairs)).long().to(self.device), torch.from_numpy(
+            np.asarray(allAnchor)).long().to(self.device), \
                torch.from_numpy(np.asarray(trueLabels)).float().to(self.device)
 
     def convertPairLabelWithLabelP(self, ddPos, ddNeg, sz):
@@ -95,14 +98,12 @@ class WrapperDecagon:
                 trueLabels.append(1)
 
             for l in negLabels:
-
                 allAnchor.append(offset + l)
                 indxx = len(trueLabels)
                 labelSegs[l].append(indxx)
                 dSe2NegPair[l].append(pair)
                 dSe2NegIndices[l].append(indxx)
                 trueLabels.append(0)
-
 
         for pair, labels in ddNeg.items():
             if pair not in posPairs:
@@ -118,9 +119,9 @@ class WrapperDecagon:
 
                     trueLabels.append(0)
 
-        return torch.from_numpy(np.asarray(pairs)).long().to(self.device), torch.from_numpy(np.asarray(allAnchor)).long().to(self.device), \
+        return torch.from_numpy(np.asarray(pairs)).long().to(self.device), torch.from_numpy(
+            np.asarray(allAnchor)).long().to(self.device), \
                torch.from_numpy(np.asarray(trueLabels)).float().to(self.device), labelSegs, dSe2NegPair, dSe2NegIndices
-
 
     def selectSubIndices2(self, secs, labelSegs, nD):
         secs = secs[::-1]
@@ -147,17 +148,11 @@ class WrapperDecagon:
 
         dSeId2Indices = dict()
 
-
         for seId in ses:
-
             dSeId2Tpls[seId] = dSe2PairAll[seId]
             dSeId2Indices[seId] = dSe2IndicesAll[seId]
 
         return dSeId2Tpls, dSeId2Indices
-
-
-
-
 
     def exportTopNeg(self, dSeId2Tpls, dSeId2Indices, predScores, dADR2Name, dDrug2Name, outFile):
 
@@ -190,7 +185,7 @@ class WrapperDecagon:
             drugPairs = v
             rrscore = sortedSeId2Scores[k]
             fout.write("%s\n" % adrName)
-            for ii,pair in enumerate(drugPairs):
+            for ii, pair in enumerate(drugPairs):
                 d1, d2 = pair
                 fout.write("\t%s, %s, %s\n" % (dDrug2Name[d1], dDrug2Name[d2], rrscore[ii]))
             fout.write("\n_________\n")
@@ -199,15 +194,14 @@ class WrapperDecagon:
 
     def train(self, realData, iFold, method="New", printDB=params.PRINT_DB):
         print("Train: ", realData.nD, realData.nSe)
-        self.model = Decagon(featureSize= realData.featureSize, embeddingSize = params.EMBEDDING_SIZE, nSe = realData.nSe, nD = realData.nD, nPro=realData.nPro, device=self.device)
+        self.model = Decagon(featureSize=realData.featureSize, embeddingSize=params.EMBEDDING_SIZE, nSe=realData.nSe,
+                             nD=realData.nD, nPro=realData.nPro, device=self.device)
         mseLoss = torch.nn.MSELoss()
 
         if params.OPTIMIZER == "Adam":
             optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
         else:
             optimizer = torch.optim.Adagrad(self.model.parameters(), lr=0.01)
-
-
 
         drugFeatures = torch.from_numpy(realData.drug2Features).float().to(self.device)
         edgeIndex = torch.tensor(realData.ppGraph, dtype=torch.long).t().contiguous().to(self.device)
@@ -218,9 +212,6 @@ class WrapperDecagon:
         edge2Label = realData.pTrainPair2Label
         validPosPair2Label = realData.pTrainPair2Label
 
-
-
-
         testPosPair2Label = realData.pTestPosLabel
         testNegPair2Label = realData.pTestNegLabel
         gA = torch.from_numpy(realData.gA).float()
@@ -228,17 +219,16 @@ class WrapperDecagon:
 
         trainPairs, trainAnchor, trainLabel = self.convertPairLabel(edge2Label, testNegPair2Label, realData.nSe)
         validPairs, validAnchor, validLabel = self.convertPairLabel(validPosPair2Label, testNegPair2Label, realData.nSe)
-        testPairs, testAnchor, testLabel, labelSegs, dSe2NegPairAll, dSe2NegIndicesAll = self.convertPairLabelWithLabelP(testPosPair2Label, testNegPair2Label, realData.nSe)
-
-
+        testPairs, testAnchor, testLabel, labelSegs, dSe2NegPairAll, dSe2NegIndicesAll = self.convertPairLabelWithLabelP(
+            testPosPair2Label, testNegPair2Label, realData.nSe)
 
         sortedADRs = realData.orderADRIds
         secs = [set() for _ in range(params.N_SEC)]
         secsList = [[] for _ in range(params.N_SEC)]
 
-        secLength = int(len(sortedADRs)/ params.N_SEC)
+        secLength = int(len(sortedADRs) / params.N_SEC)
         for i, v in enumerate(sortedADRs):
-            secId = int(i/secLength)
+            secId = int(i / secLength)
             if secId == params.N_SEC:
                 secId = params.N_SEC - 1
             secs[secId].add(v + realData.nD)
@@ -374,13 +364,15 @@ def evalAUCAUPR1(outPos, outNeg):
     auc = roc_auc_score(trueOut, predicted)
     return auc, aupr
 
-def evalAUCAUPROrigin(out, target):
 
+def evalAUCAUPROrigin(out, target):
     if np.sum(target) == 0 or np.sum(target) == target.shape[-1]:
         return 0.5, 0.5
     aupr = average_precision_score(target, out)
     auc = roc_auc_score(target, out)
     return auc, aupr
+
+
 if __name__ == "__main__":
     import random
     from utils import utils

@@ -160,22 +160,16 @@ def producer(data):
         for i in range(nSize):
             d1, d2 = pairs[i]
             tpl = (d1, d2, adr)
-            if params.HIGH_TWOSIDES:
-                trainFold.append(tpl)
-                edgeSet.add((d1, d2))
-                labels = utils.get_insert_key_dict(edge2Label, (d1, d2), [])
-                labels.append(adr - numDrug)
 
             if startTest <= i < endTest:
                 testFold.append(tpl)
             elif startValid <= i < endValid:
                 validFold.append(tpl)
 
-            elif not params.HIGH_TWOSIDES:
-                trainFold.append(tpl)
-                edgeSet.add((d1, d2))
-                labels = utils.get_insert_key_dict(edge2Label, (d1, d2), [])
-                labels.append(adr - numDrug)
+            trainFold.append(tpl)
+            edgeSet.add((d1, d2))
+            labels = utils.get_insert_key_dict(edge2Label, (d1, d2), [])
+            labels.append(adr - numDrug)
 
     pairStats = trainFold2PairStats(trainFold, numDrug)
 
@@ -235,11 +229,17 @@ def producer(data):
     #     hyperedgeIndexType.append(tp)
 
     heterogeneousAdjacency = genAdjacency(trainFold, numDrug + numSe)
+    from dataFactory.genData.lh import genAFromTpl, genUAFromTpl
 
-    realFold = RealFoldData(trainFold, testFold, validFold, 0, 0, negFold, features)
+    A, D = genAFromTpl(trainFold, numNodes)
+    UA, UD = genUAFromTpl(trainFold, numNodes)
+
+    realFold = RealFoldData(trainFold, testFold, validFold, A, UA, negFold, features)
     realFold.nSe = numSe
     realFold.nD = numDrug
-    realFold.DFold = 0
+    realFold.DFold = D
+    realFold.UDFold = UD
+
 
     realFold.trainPairStats = pairStats
     realFold.iFold = iFold
@@ -308,8 +308,8 @@ def genHyperData(onlyFirst=False):
     smiles = genSMILESFromInchies(inchies)
 
     edgeIndex, protein2Id, nDrug, dDrug2ProteinFeatures = loadDrug2Protein(inchies, params.PATHWAY)
-    if params.HIGH_TWOSIDES:
-        utils.save_obj(protein2Id, "%s/TWOSIDESProtein2Id_1.dat" % DATASET_DIR)
+    # if params.HIGH_TWOSIDES:
+    #     utils.save_obj(protein2Id, "%s/TWOSIDESProtein2Id_1.dat" % DATASET_DIR)
 
     appendProteinProtein(protein2Id, edgeIndex, nDrug)
 
@@ -334,8 +334,8 @@ def genHyperData(onlyFirst=False):
         nD = features.shape[0]
         features = np.diag(np.ones(nD))
     print_db("Feature: ", features.shape)
-    if params.HIGH_TWOSIDES:
-        utils.save_obj((protein2Id, features), "%s/TWOSIDESfeatures_1.dat" % DATASET_DIR)
+    # if params.HIGH_TWOSIDES:
+    #     utils.save_obj((protein2Id, features), "%s/TWOSIDESfeatures_1.dat" % DATASET_DIR)
 
     negFold = genTrueNegTpl(dADRId2PairIds, numDrug, params.SAMPLE_NEG)
     print("Starting...")
@@ -346,8 +346,6 @@ def genHyperData(onlyFirst=False):
         realFold = producer(data)
         print("Saving fold: ", iFold)
         pref = ""
-        if params.HIGH_TWOSIDES:
-            pref = "fullC5"
         utils.save_obj(realFold, "%s/%s_%d_%d_%d_%d" % (
             DATASET_DIR, pref, params.MAX_R_ADR, params.MAX_R_DRUG, params.ADR_OFFSET, iFold))
         if onlyFirst:

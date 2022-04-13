@@ -40,8 +40,8 @@ class Decagon(torch.nn.Module):
 
         self.outLayer1 = torch.nn.Linear(params.EMBEDDING_SIZE * 2, params.EMBEDDING_SIZE).to(device)
         self.outLayer2 = torch.nn.Linear(params.EMBEDDING_SIZE, nSe).to(device)
-        # self.defaultAct = torch.nn.Hardshrink(lambd=0.00001)
-        self.defaultAct = torch.nn.ReLU()
+        self.defaultAct = torch.nn.Hardshrink(lambd=0.0001)
+        # self.defaultAct = torch.nn.ReLU()
         self.dim1s = [i for i in range(self.nD)]
         self.dim2s = [i for i in range(self.nD)]
         self.dim3s = [i for i in range(self.nSe)]
@@ -49,8 +49,8 @@ class Decagon(torch.nn.Module):
         seIndices = [i for i in range(self.nSe)]
         self.seIndices = torch.from_numpy(np.asarray(seIndices)).long().to(self.device)
 
-        self.linkAct = torch.nn.Hardshrink(lambd=0.000001)
-
+        self.linkAct = torch.nn.Hardshrink(lambd=0.0001)
+        # self.linkAct = torch.nn.ReLU()
     def getWLoss(self, target, pred, w=params.L_W):
         s = target.shape
 
