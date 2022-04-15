@@ -4,57 +4,6 @@ import params
 import torch
 
 
-def __loadNegIdsSe2Pair(ses, dSe2PairAll, dSe2IndicesAll, seOffset=0):
-    dSeId2Tpls = dict()
-
-    dSeId2Indices = dict()
-
-    for seId in ses:
-        seId -= seOffset
-        dSeId2Tpls[seId] = dSe2PairAll[seId]
-        dSeId2Indices[seId] = dSe2IndicesAll[seId]
-
-    return dSeId2Tpls, dSeId2Indices
-
-
-def __exportTopNegBySe2Pair(dSeId2Tpls, dSeId2Indices, predScores, dADR2Name, dDrug2Name, outFile):
-    seOfIds = sorted(dSeId2Indices.keys())
-    sorteddSeId2Tpls = dict()
-    sortedSeId2Scores = dict()
-
-    for seOfId in seOfIds:
-        indices = dSeId2Indices[seOfId]
-        tpls = dSeId2Tpls[seOfId]
-
-        res = predScores[indices]
-        assert len(res) == len(tpls)
-
-        sortedIndiceScores = np.argsort(res)[::-1]
-        assert res[sortedIndiceScores[0]] >= res[sortedIndiceScores[1]]
-        # print(res[sortedIndiceScores[0]])
-        rr = []
-        orr = dSeId2Tpls[seOfId]
-        rscore = []
-        for idx in sortedIndiceScores:
-            d1, d2 = orr[idx]
-            rr.append((d1, d2))
-            rscore.append(res[idx])
-        sorteddSeId2Tpls[seOfId] = rr
-        sortedSeId2Scores[seOfId] = rscore
-    fout = open(outFile, "w")
-    for k, v in sorteddSeId2Tpls.items():
-        adrName = dADR2Name[k]
-        drugPairs = v
-        rrscore = sortedSeId2Scores[k]
-        fout.write("%s\n" % adrName)
-        for ii, pair in enumerate(drugPairs):
-            d1, d2 = pair
-            fout.write("\t%s, %s, %s\n" % (dDrug2Name[d1], dDrug2Name[d2], rrscore[ii]))
-        fout.write("\n_________\n")
-
-    fout.close()
-
-
 def __loadNegIds(ses, secs, tpls, segId=0):
     secs = secs[::-1]
     sz = len(secs)
@@ -111,17 +60,22 @@ def exportTopNeg(realData, method, iFold):
     dAdrName, dDrugName = utils.load_obj(params.ID2NamePath_TWOSIDE)
     outFile = "%s/Export_TOP_NEG_%s_%s" % (params.OUTPUT_DIR, method, iFold)
     predictedValues = utils.load_obj("%s/SaveCalValues_W_%s_%s" % (params.OUTPUT_DIR, method, iFold))
-    _, outNegK = predictedValues
-    outNegK = outNegK.reshape(-1)
-    print("Neg: ", len(outNegK), outNegK[0])
+
     ses = secsList[-1][-50:]
     print("Ses: ", len(ses), ses)
     if method == "Decagon":
         testPairs, testAnchor, testLabel, labelSegs, dSe2NegPairAll, dSe2NegIndicesAll = convertPairLabelWithLabelP(
             realData.pTestPosLabel, realData.pTestNegLabel, realData.nSe)
+        predictedScores, _ = predictedValues
+        print("Predicted: ", len(predictedScores), predictedScores[0])
+        print(predictedScores[:20])
         dSeId2Tpls, dSeId2Indices = __loadNegIdsSe2Pair(ses, dSe2NegPairAll, dSe2NegIndicesAll, seOffset=realData.nD)
-        __exportTopNegBySe2Pair(dSeId2Tpls, dSeId2Indices, outNegK, dAdrName, dDrugName, outFile)
+        __exportTopNegBySe2Pair(dSeId2Tpls, dSeId2Indices, predictedScores, dAdrName, dDrugName, outFile)
     else:
+        _, outNegK = predictedValues
+        outNegK = outNegK.reshape(-1)
+        print("Neg: ", len(outNegK), outNegK[0])
+        print(outNegK[:20])
         dSeId2Tpls, dSeId2Indices = __loadNegIds(ses, secs, negTestTpl, segId=-1)
         __exportTopNeg2(dSeId2Tpls, dSeId2Indices, outNegK, nD, dAdrName, dDrugName, outFile)
 
@@ -130,11 +84,13 @@ def __exportTopNeg2(dSeId2Tpls, dSeId2Indices, NegRes, nD, dADR2Name, dDrug2Name
     seOfIds = sorted(dSeId2Indices.keys())
     sorteddSeId2Tpls = dict()
     sortedSeId2Scores = dict()
+    print(NegRes[:100])
     for seOfId in seOfIds:
         indices = dSeId2Indices[seOfId]
         tpls = dSeId2Tpls[seOfId]
 
         res = NegRes[indices]
+        print(res[:20])
         assert len(res) == len(tpls)
 
         sortedIndiceScores = np.argsort(res)[::-1]
@@ -148,22 +104,25 @@ def __exportTopNeg2(dSeId2Tpls, dSeId2Indices, NegRes, nD, dADR2Name, dDrug2Name
             d1, d2, _ = orr[idx]
             rr.append((d1, d2))
             rscore.append(res[idx])
-
+        print(rscore)
         sorteddSeId2Tpls[seOfId - nD] = rr
         sortedSeId2Scores[seOfId - nD] = rscore
     fout = open(outFile, "w")
+    fseNames = open("%s_se" % outFile, "w")
+
     for k, v in sorteddSeId2Tpls.items():
         adrName = dADR2Name[k]
         drugPairs = v
         rscore = sortedSeId2Scores[k]
         fout.write("%s\n" % adrName)
+        fseNames.write("%s\n" % adrName)
         for ii, pair in enumerate(drugPairs):
             d1, d2 = pair
             fout.write("\t%s, %s, %s\n" % (dDrug2Name[d1], dDrug2Name[d2], rscore[ii]))
         fout.write("\n_________\n")
 
     fout.close()
-
+    fseNames.close()
 
 def convertPairLabelWithLabelP(ddPos, ddNeg, sz):
     pairs = []
@@ -214,3 +173,61 @@ def convertPairLabelWithLabelP(ddPos, ddNeg, sz):
     return torch.from_numpy(np.asarray(pairs)).long(), torch.from_numpy(
         np.asarray(allAnchor)).long(), \
            torch.from_numpy(np.asarray(trueLabels)).float(), labelSegs, dSe2NegPair, dSe2NegIndices
+
+
+
+
+
+def __loadNegIdsSe2Pair(ses, dSe2PairAll, dSe2IndicesAll, seOffset=0):
+    dSeId2Tpls = dict()
+
+    dSeId2Indices = dict()
+
+    for seId in ses:
+        seId -= seOffset
+        dSeId2Tpls[seId] = dSe2PairAll[seId]
+        dSeId2Indices[seId] = dSe2IndicesAll[seId]
+
+    return dSeId2Tpls, dSeId2Indices
+
+
+def __exportTopNegBySe2Pair(dSeId2Tpls, dSeId2Indices, predScores, dADR2Name, dDrug2Name, outFile):
+    seOfIds = sorted(dSeId2Indices.keys())
+    sorteddSeId2Tpls = dict()
+    sortedSeId2Scores = dict()
+
+    for seOfId in seOfIds:
+        indices = dSeId2Indices[seOfId]
+        tpls = dSeId2Tpls[seOfId]
+
+        res = predScores[indices]
+        assert len(res) == len(tpls)
+
+        sortedIndiceScores = np.argsort(res)[::-1]
+        assert res[sortedIndiceScores[0]] >= res[sortedIndiceScores[1]]
+        # print(res[sortedIndiceScores[0]])
+        rr = []
+        orr = dSeId2Tpls[seOfId]
+        rscore = []
+        for idx in sortedIndiceScores:
+            d1, d2 = orr[idx]
+            rr.append((d1, d2))
+            rscore.append(res[idx])
+        # print(rscore)
+        sorteddSeId2Tpls[seOfId] = rr
+        sortedSeId2Scores[seOfId] = rscore
+    fout = open(outFile, "w")
+    fseNames = open("%s_se" % outFile, "w")
+    for k, v in sorteddSeId2Tpls.items():
+        adrName = dADR2Name[k]
+        drugPairs = v
+        rrscore = sortedSeId2Scores[k]
+        fout.write("%s\n" % adrName)
+        fseNames.write("%s\n" % adrName)
+        for ii, pair in enumerate(drugPairs):
+            d1, d2 = pair
+            fout.write("\t%s, %s, %s\n" % (dDrug2Name[d1], dDrug2Name[d2], rrscore[ii]))
+        fout.write("\n_________\n")
+
+    fout.close()
+    fseNames.close()
