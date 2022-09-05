@@ -31,7 +31,7 @@ FORCE_CPU = False
 
 K_FOLD = 20
 
-N_ITER = 3000
+N_ITER = 100000
 ITER_DB = 100
 
 
@@ -60,7 +60,7 @@ DEG_NORM = True
 
 
 ON_W = True
-LEARN_WEIGHT_IN = True
+LEARN_WEIGHT_IN = False
 LEARN_WEIGHT_LAST = True
 
 N_SGD = 20
