@@ -39,7 +39,7 @@ Install torch geometric library
 ### Visualization:
 
 ```shell
- python main.py -v
+ python main.py -r -v
 ```
 
 ### Visualization results
