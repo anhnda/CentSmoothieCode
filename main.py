@@ -15,7 +15,7 @@ def convertStringToBoolean(val):
 
 
 def parseConfig(options):
-    print(options)
+    # print(options)
     params.FORCE_CPU = options.oncpu
     params.L_METHOD = "Cent"
     params.N_ITER = options.iter
